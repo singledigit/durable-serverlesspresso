@@ -102,71 +102,6 @@ async function publishEvent(
 }
 
 /**
- * Update order status in DynamoDB
- */
-async function updateOrderStatus(
-  orderId: string,
-  updates: {
-    status?: OrderRecord["status"];
-    currentPhase?: OrderRecord["currentPhase"];
-    activeCallbackId?: string | null;
-    cancellationReason?: string;
-    cancelledBy?: CancelledBy;
-    timestampField?: "queued" | "accepted" | "completed" | "cancelled";
-  }
-): Promise<void> {
-  const timestamp = getTimestamp();
-  const updateExpressions: string[] = [];
-  const expressionAttributeNames: Record<string, string> = {};
-  const expressionAttributeValues: Record<string, any> = {
-    ":timestamp": timestamp,
-  };
-
-  if (updates.status) {
-    updateExpressions.push("#status = :status");
-    expressionAttributeNames["#status"] = "status";
-    expressionAttributeValues[":status"] = updates.status;
-  }
-
-  if (updates.currentPhase !== undefined) {
-    updateExpressions.push("currentPhase = :phase");
-    expressionAttributeValues[":phase"] = updates.currentPhase;
-  }
-
-  if (updates.activeCallbackId !== undefined) {
-    updateExpressions.push("activeCallbackId = :activeCallbackId");
-    expressionAttributeValues[":activeCallbackId"] = updates.activeCallbackId;
-  }
-
-  if (updates.cancellationReason) {
-    updateExpressions.push("cancellationReason = :reason");
-    expressionAttributeValues[":reason"] = updates.cancellationReason;
-  }
-
-  if (updates.cancelledBy) {
-    updateExpressions.push("cancelledBy = :cancelledBy");
-    expressionAttributeValues[":cancelledBy"] = updates.cancelledBy;
-  }
-
-  if (updates.timestampField) {
-    updateExpressions.push(`#timestamps.${updates.timestampField} = :timestamp`);
-    expressionAttributeNames["#timestamps"] = "timestamps";
-  }
-
-  updateExpressions.push("updatedAt = :timestamp");
-
-  await docClient.send(
-    new UpdateCommand({
-      TableName: ORDERS_TABLE_NAME,
-      Key: { orderId },
-      UpdateExpression: `SET ${updateExpressions.join(", ")}`,
-      ExpressionAttributeNames: Object.keys(expressionAttributeNames).length > 0 ? expressionAttributeNames : undefined,
-      ExpressionAttributeValues: expressionAttributeValues,
-    })
-  );
-}
-
-/**
  * Handle order cancellation - unified cancellation logic
  */
 async function handleCancellation(
@@ -178,17 +113,7 @@ async function handleCancellation(
   await context.step(
     "handle-cancellation",
     async () => {
-      // Update order status
-      await updateOrderStatus(orderData.orderId, {
-        status: "CANCELLED",
-        currentPhase: "CANCELLED",
-        activeCallbackId: null,
-        cancellationReason: reason,
-        cancelledBy,
-        timestampField: "cancelled",
-      });
-
-      // Publish cancellation event
+      // Publish cancellation event - event-publisher will update DynamoDB
       await publishEvent("ORDER_CANCELLED", {
         orderId: orderData.orderId,
         attendeeId: orderData.attendeeId,
@@ -444,11 +369,7 @@ export const handler = withDurableExecution(
     await context.step(
       "publish-order-queued",
       async () => {
-        await updateOrderStatus(orderData.orderId, {
-          status: "QUEUED",
-          timestampField: "queued",
-        });
-
+        // Publish event - event-publisher will update DynamoDB
         await publishEvent("ORDER_QUEUED", {
           orderId: orderData.orderId,
           attendeeId: orderData.attendeeId,
@@ -468,17 +389,23 @@ export const handler = withDurableExecution(
     let acceptanceResult: CallbackResult;
 
     try {
-      acceptanceResult = await context.waitForCallback<CallbackResult>(
-        async (callbackId, ctx) => {
-          await storeCallbackId(orderData.orderId, callbackId, "WAITING_ACCEPTANCE", "acceptance");
-          ctx.logger.info("Acceptance callback ID stored", {
-            orderId: orderData.orderId,
-            callbackId,
-            phase: "WAITING_ACCEPTANCE",
-          });
-        },
+      // Create callback and store ID BEFORE waiting to avoid race condition
+      const [acceptancePromise, acceptanceCallbackId] = await context.createCallback<CallbackResult>(
+        "wait-acceptance",
         { timeout: TIMEOUTS.ACCEPTANCE }
       );
+
+      await context.step("store-acceptance-callback", async () => {
+        await storeCallbackId(orderData.orderId, acceptanceCallbackId, "WAITING_ACCEPTANCE", "acceptance");
+        context.logger.info("Acceptance callback ID stored", {
+          orderId: orderData.orderId,
+          callbackId: acceptanceCallbackId,
+          phase: "WAITING_ACCEPTANCE",
+        });
+      }, { retryStrategy });
+
+      // Now wait for the callback
+      acceptanceResult = await acceptancePromise;
     } catch (error: any) {
       context.logger.warn("Acceptance timeout occurred", {
         orderId: orderData.orderId,
@@ -514,11 +441,7 @@ export const handler = withDurableExecution(
     await context.step(
       "publish-order-accepted",
       async () => {
-        await updateOrderStatus(orderData.orderId, {
-          status: "ACCEPTED",
-          timestampField: "accepted",
-        });
-
+        // Publish event - event-publisher will update DynamoDB
         await publishEvent("ORDER_ACCEPTED", {
           orderId: orderData.orderId,
           attendeeId: orderData.attendeeId,
@@ -537,17 +460,23 @@ export const handler = withDurableExecution(
     let completionResult: CallbackResult;
 
     try {
-      completionResult = await context.waitForCallback<CallbackResult>(
-        async (callbackId, ctx) => {
-          await storeCallbackId(orderData.orderId, callbackId, "WAITING_COMPLETION", "completion");
-          ctx.logger.info("Completion callback ID stored", {
-            orderId: orderData.orderId,
-            callbackId,
-            phase: "WAITING_COMPLETION",
-          });
-        },
+      // Create callback and store ID BEFORE waiting to avoid race condition
+      const [completionPromise, completionCallbackId] = await context.createCallback<CallbackResult>(
+        "wait-completion",
         { timeout: TIMEOUTS.COMPLETION }
       );
+
+      await context.step("store-completion-callback", async () => {
+        await storeCallbackId(orderData.orderId, completionCallbackId, "WAITING_COMPLETION", "completion");
+        context.logger.info("Completion callback ID stored", {
+          orderId: orderData.orderId,
+          callbackId: completionCallbackId,
+          phase: "WAITING_COMPLETION",
+        });
+      }, { retryStrategy });
+
+      // Now wait for the callback
+      completionResult = await completionPromise;
     } catch (error: any) {
       context.logger.warn("Completion timeout occurred", {
         orderId: orderData.orderId,
@@ -583,13 +512,7 @@ export const handler = withDurableExecution(
     await context.step(
       "record-order-completion",
       async () => {
-        await updateOrderStatus(orderData.orderId, {
-          status: "COMPLETED",
-          currentPhase: "COMPLETED",
-          activeCallbackId: null,
-          timestampField: "completed",
-        });
-
+        // Publish event - event-publisher will update DynamoDB
         await publishEvent("ORDER_COMPLETED", {
           orderId: orderData.orderId,
           attendeeId: orderData.attendeeId,
