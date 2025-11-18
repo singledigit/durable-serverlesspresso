@@ -1,0 +1,33 @@
+{
+  "DurableExecutionArn": "a445b369-ccc1-49f3-94b3-ef3d62276fc1",
+  "StartInput": {
+    "AccountId": "123456789012",
+    "FunctionName": "function",
+    "FunctionQualifier": "$LATEST",
+    "ExecutionName": "test-order-4",
+    "ExecutionTimeoutSeconds": 900,
+    "ExecutionRetentionPeriodDays": 7,
+    "InvocationId": "52822647-d007-4f1c-ae85-f226bc8b74b7",
+    "Input": "{\n  \"orderId\": \"test-order-123\",\n  \"attendeeId\": \"test-attendee-456\",\n  \"eventId\": \"test-event-789\",\n  \"orderDetails\": {\n    \"drinkType\": \"latte\",\n    \"size\": \"medium\",\n    \"customizations\": [\"extra shot\", \"oat milk\"]\n  },\n  \"timestamp\": \"2025-11-14T14:00:00Z\"\n}\n"
+  },
+  "Operations": [
+    {
+      "Id": "52822647-d007-4f1c-ae85-f226bc8b74b7",
+      "Type": "EXECUTION",
+      "Status": "STARTED",
+      "Name": "test-order-4",
+      "StartTimestamp": 1763162395.841357,
+      "ExecutionDetails": {
+        "InputPayload": "\"{\\n  \\\"orderId\\\": \\\"test-order-123\\\",\\n  \\\"attendeeId\\\": \\\"test-attendee-456\\\",\\n  \\\"eventId\\\": \\\"test-event-789\\\",\\n  \\\"orderDetails\\\": {\\n    \\\"drinkType\\\": \\\"latte\\\",\\n    \\\"size\\\": \\\"medium\\\",\\n    \\\"customizations\\\": [\\\"extra shot\\\", \\\"oat milk\\\"]\\n  },\\n  \\\"timestamp\\\": \\\"2025-11-14T14:00:00Z\\\"\\n}\\n\""
+      }
+    }
+  ],
+  "Updates": [],
+  "UsedTokens": [
+    "eyJhcm4iOiJhNDQ1YjM2OS1jY2MxLTQ5ZjMtOTRiMy1lZjNkNjIyNzZmYzEiLCJzZXEiOjF9"
+  ],
+  "TokenSequence": 1,
+  "IsComplete": false,
+  "Result": null,
+  "ConsecutiveFailedInvocationAttempts": 0
+}

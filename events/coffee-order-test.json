@@ -1,0 +1,11 @@
+{
+  "orderId": "test-order-123",
+  "attendeeId": "test-attendee-456",
+  "eventId": "reinvent-2025",
+  "orderDetails": {
+    "drinkType": "latte",
+    "size": "medium",
+    "customizations": ["extra shot", "oat milk"]
+  },
+  "timestamp": "2025-11-14T14:00:00Z"
+}

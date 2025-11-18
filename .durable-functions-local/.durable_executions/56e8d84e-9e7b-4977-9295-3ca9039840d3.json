@@ -1,0 +1,33 @@
+{
+  "DurableExecutionArn": "56e8d84e-9e7b-4977-9295-3ca9039840d3",
+  "StartInput": {
+    "AccountId": "123456789012",
+    "FunctionName": "function",
+    "FunctionQualifier": "$LATEST",
+    "ExecutionName": "hello-test-1",
+    "ExecutionTimeoutSeconds": 900,
+    "ExecutionRetentionPeriodDays": 7,
+    "InvocationId": "f2f86edd-d0ec-479d-a20e-f11e9c1c078a",
+    "Input": "{\n  \"name\": \"World\"\n}\n"
+  },
+  "Operations": [
+    {
+      "Id": "f2f86edd-d0ec-479d-a20e-f11e9c1c078a",
+      "Type": "EXECUTION",
+      "Status": "STARTED",
+      "Name": "hello-test-1",
+      "StartTimestamp": 1763163046.509944,
+      "ExecutionDetails": {
+        "InputPayload": "\"{\\n  \\\"name\\\": \\\"World\\\"\\n}\\n\""
+      }
+    }
+  ],
+  "Updates": [],
+  "UsedTokens": [
+    "eyJhcm4iOiI1NmU4ZDg0ZS05ZTdiLTQ5NzctOTI5NS0zY2E5MDM5ODQwZDMiLCJzZXEiOjF9"
+  ],
+  "TokenSequence": 1,
+  "IsComplete": false,
+  "Result": null,
+  "ConsecutiveFailedInvocationAttempts": 0
+}

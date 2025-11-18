@@ -1,0 +1,97 @@
+{
+  "DurableExecutionArn": "bb2c30ab-b3d6-4c22-acf9-cc8846ffa37e",
+  "StartInput": {
+    "AccountId": "123456789012",
+    "FunctionName": "function",
+    "FunctionQualifier": "$LATEST",
+    "ExecutionName": "hello-test-7",
+    "ExecutionTimeoutSeconds": 900,
+    "ExecutionRetentionPeriodDays": 7,
+    "InvocationId": "ae19b036-c224-435a-a807-b047a19ca0ef",
+    "Input": "{\n  \"name\": \"World\"\n}\n"
+  },
+  "Operations": [
+    {
+      "Id": "ae19b036-c224-435a-a807-b047a19ca0ef",
+      "Type": "EXECUTION",
+      "Status": "SUCCEEDED",
+      "Name": "hello-test-7",
+      "StartTimestamp": 1763488258.664901,
+      "EndTimestamp": 1763488258.784887,
+      "ExecutionDetails": {
+        "InputPayload": "\"{\\n  \\\"name\\\": \\\"World\\\"\\n}\\n\""
+      }
+    },
+    {
+      "Id": "c4ca4238a0b92382",
+      "Type": "STEP",
+      "Status": "SUCCEEDED",
+      "Name": "greet",
+      "StartTimestamp": 1763488258.768699,
+      "EndTimestamp": 1763488258.768713,
+      "SubType": "Step",
+      "StepDetails": {
+        "Attempt": 1,
+        "Result": "\"Hello, undefined!\""
+      }
+    },
+    {
+      "Id": "c81e728d9d4c2f63",
+      "Type": "STEP",
+      "Status": "SUCCEEDED",
+      "Name": "add-timestamp",
+      "StartTimestamp": 1763488258.777272,
+      "EndTimestamp": 1763488258.777284,
+      "SubType": "Step",
+      "StepDetails": {
+        "Attempt": 1,
+        "Result": "{\"greeting\":\"Hello, undefined!\",\"timestamp\":\"2025-11-18T17:50:58.772Z\"}"
+      }
+    }
+  ],
+  "Updates": [
+    {
+      "Id": "c4ca4238a0b92382",
+      "Type": "STEP",
+      "Action": "START",
+      "Name": "greet",
+      "SubType": "Step"
+    },
+    {
+      "Id": "c4ca4238a0b92382",
+      "Type": "STEP",
+      "Action": "SUCCEED",
+      "Name": "greet",
+      "SubType": "Step",
+      "Payload": "\"Hello, undefined!\""
+    },
+    {
+      "Id": "c81e728d9d4c2f63",
+      "Type": "STEP",
+      "Action": "START",
+      "Name": "add-timestamp",
+      "SubType": "Step"
+    },
+    {
+      "Id": "c81e728d9d4c2f63",
+      "Type": "STEP",
+      "Action": "SUCCEED",
+      "Name": "add-timestamp",
+      "SubType": "Step",
+      "Payload": "{\"greeting\":\"Hello, undefined!\",\"timestamp\":\"2025-11-18T17:50:58.772Z\"}"
+    }
+  ],
+  "UsedTokens": [
+    "eyJhcm4iOiJiYjJjMzBhYi1iM2Q2LTRjMjItYWNmOS1jYzg4NDZmZmEzN2UiLCJzZXEiOjF9",
+    "eyJhcm4iOiJiYjJjMzBhYi1iM2Q2LTRjMjItYWNmOS1jYzg4NDZmZmEzN2UiLCJzZXEiOjN9",
+    "eyJhcm4iOiJiYjJjMzBhYi1iM2Q2LTRjMjItYWNmOS1jYzg4NDZmZmEzN2UiLCJzZXEiOjJ9"
+  ],
+  "TokenSequence": 3,
+  "IsComplete": true,
+  "Result": {
+    "Status": "SUCCEEDED",
+    "Result": "{\"greeting\":\"Hello, undefined!\",\"timestamp\":\"2025-11-18T17:50:58.772Z\"}"
+  },
+  "ConsecutiveFailedInvocationAttempts": 0,
+  "CloseStatus": "SUCCEEDED"
+}

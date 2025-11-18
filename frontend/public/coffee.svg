@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Background circle for contrast on any background -->
+  <circle cx="50" cy="50" r="48" fill="#F5E6D3" stroke="#6F4E37" stroke-width="3"/>
+  
+  <!-- Coffee cup body -->
+  <path d="M25 40 L28 72 Q28 80 36 80 L64 80 Q72 80 72 72 L75 40 Z" 
+        fill="#8B4513" 
+        stroke="#3E2723" 
+        stroke-width="2"/>
+  
+  <!-- Coffee cup rim -->
+  <ellipse cx="50" cy="40" rx="25" ry="6" 
+           fill="#A0522D" 
+           stroke="#3E2723" 
+           stroke-width="2"/>
+  
+  <!-- Coffee liquid surface -->
+  <ellipse cx="50" cy="40" rx="23" ry="5" 
+           fill="#3E2723"/>
+  
+  <!-- Handle -->
+  <path d="M75 45 Q87 52 87 60 Q87 68 75 72" 
+        fill="none" 
+        stroke="#8B4513" 
+        stroke-width="5" 
+        stroke-linecap="round"/>
+  <path d="M75 45 Q87 52 87 60 Q87 68 75 72" 
+        fill="none" 
+        stroke="#3E2723" 
+        stroke-width="2" 
+        stroke-linecap="round"/>
+  
+  <!-- Steam wisps -->
+  <g opacity="0.8">
+    <path d="M38 32 Q36 27 38 22 Q40 17 38 12" 
+          fill="none" 
+          stroke="#6F4E37" 
+          stroke-width="2.5" 
+          stroke-linecap="round">
+      <animate attributeName="opacity" 
+               values="0.4;0.8;0.4" 
+               dur="2s" 
+               repeatCount="indefinite"/>
+    </path>
+    <path d="M50 35 Q48 30 50 25 Q52 20 50 15" 
+          fill="none" 
+          stroke="#6F4E37" 
+          stroke-width="2.5" 
+          stroke-linecap="round">
+      <animate attributeName="opacity" 
+               values="0.5;0.9;0.5" 
+               dur="2.3s" 
+               repeatCount="indefinite"/>
+    </path>
+    <path d="M62 32 Q64 27 62 22 Q60 17 62 12" 
+          fill="none" 
+          stroke="#6F4E37" 
+          stroke-width="2.5" 
+          stroke-linecap="round">
+      <animate attributeName="opacity" 
+               values="0.4;0.8;0.4" 
+               dur="2.6s" 
+               repeatCount="indefinite"/>
+    </path>
+  </g>
+  
+  <!-- Highlight on cup -->
+  <ellipse cx="42" cy="55" rx="6" ry="12" 
+           fill="white" 
+           opacity="0.3"/>
+</svg>

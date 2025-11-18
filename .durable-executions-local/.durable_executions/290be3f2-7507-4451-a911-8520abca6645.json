@@ -1,0 +1,298 @@
+{
+  "DurableExecutionArn": "290be3f2-7507-4451-a911-8520abca6645",
+  "StartInput": {
+    "AccountId": "123456789012",
+    "FunctionName": "function",
+    "FunctionQualifier": "$LATEST",
+    "ExecutionName": "test-001",
+    "ExecutionTimeoutSeconds": 900,
+    "ExecutionRetentionPeriodDays": 7,
+    "InvocationId": "d1120abe-af0d-45ba-af53-e633740ddbe6",
+    "Input": "{\n  \"orderId\": \"test-order-123\",\n  \"attendeeId\": \"test-attendee-456\",\n  \"eventId\": \"test-event-789\",\n  \"orderDetails\": {\n    \"drinkType\": \"latte\",\n    \"size\": \"medium\",\n    \"customizations\": [\"extra shot\", \"oat milk\"]\n  },\n  \"timestamp\": \"2025-11-14T14:00:00Z\"\n}\n"
+  },
+  "Operations": [
+    {
+      "Id": "d1120abe-af0d-45ba-af53-e633740ddbe6",
+      "Type": "EXECUTION",
+      "Status": "STOPPED",
+      "Name": "test-001",
+      "StartTimestamp": 1763500861.355634,
+      "EndTimestamp": 1763501351.105586,
+      "ExecutionDetails": {
+        "InputPayload": "\"{\\n  \\\"orderId\\\": \\\"test-order-123\\\",\\n  \\\"attendeeId\\\": \\\"test-attendee-456\\\",\\n  \\\"eventId\\\": \\\"test-event-789\\\",\\n  \\\"orderDetails\\\": {\\n    \\\"drinkType\\\": \\\"latte\\\",\\n    \\\"size\\\": \\\"medium\\\",\\n    \\\"customizations\\\": [\\\"extra shot\\\", \\\"oat milk\\\"]\\n  },\\n  \\\"timestamp\\\": \\\"2025-11-14T14:00:00Z\\\"\\n}\\n\""
+      }
+    },
+    {
+      "Id": "c4ca4238a0b92382",
+      "Type": "STEP",
+      "Status": "SUCCEEDED",
+      "Name": "initialize-order",
+      "StartTimestamp": 1763500861.50866,
+      "EndTimestamp": 1763500861.755972,
+      "SubType": "Step",
+      "StepDetails": {
+        "Attempt": 1,
+        "Result": "{\"orderId\":\"e98a3fc8-b544-4505-919a-9772e4f39f23\",\"status\":\"PENDING\",\"executionArn\":\"\",\"timestamps\":{\"placed\":\"2025-11-18T21:21:01.489Z\"},\"createdAt\":\"2025-11-18T21:21:01.489Z\",\"updatedAt\":\"2025-11-18T21:21:01.489Z\"}"
+      }
+    },
+    {
+      "Id": "c81e728d9d4c2f63",
+      "Type": "STEP",
+      "Status": "SUCCEEDED",
+      "Name": "publish-order-placed",
+      "StartTimestamp": 1763500861.784233,
+      "EndTimestamp": 1763500862.041946,
+      "SubType": "Step",
+      "StepDetails": {
+        "Attempt": 1
+      }
+    },
+    {
+      "Id": "eccbc87e4b5ce2fe",
+      "Type": "CONTEXT",
+      "Status": "STARTED",
+      "Name": "parallel-validation",
+      "StartTimestamp": 1763500862.066696,
+      "SubType": "Parallel",
+      "ContextDetails": {
+        "Result": null
+      }
+    },
+    {
+      "Id": "c9e6e7b69f98f516",
+      "Type": "CONTEXT",
+      "Status": "STARTED",
+      "ParentId": "eccbc87e4b5ce2fe",
+      "Name": "event-config",
+      "StartTimestamp": 1763500862.066718,
+      "SubType": "ParallelBranch",
+      "ContextDetails": {
+        "Result": null
+      }
+    },
+    {
+      "Id": "284ee898088b7efd",
+      "Type": "STEP",
+      "Status": "PENDING",
+      "ParentId": "c9e6e7b69f98f516",
+      "Name": "fetch-event-config",
+      "StartTimestamp": 1763500862.066729,
+      "SubType": "Step",
+      "StepDetails": {
+        "Attempt": 2,
+        "NextAttemptTimestamp": 1763500864.280851
+      }
+    },
+    {
+      "Id": "b772d43b49bb57b5",
+      "Type": "CONTEXT",
+      "Status": "STARTED",
+      "ParentId": "eccbc87e4b5ce2fe",
+      "Name": "previous-orders",
+      "StartTimestamp": 1763500862.066738,
+      "SubType": "ParallelBranch",
+      "ContextDetails": {
+        "Result": null
+      }
+    },
+    {
+      "Id": "e9fa198e766d7b9b",
+      "Type": "STEP",
+      "Status": "READY",
+      "ParentId": "b772d43b49bb57b5",
+      "Name": "fetch-attendee-orders",
+      "StartTimestamp": 1763500862.066751,
+      "SubType": "Step",
+      "StepDetails": {
+        "Attempt": 1
+      }
+    }
+  ],
+  "Updates": [
+    {
+      "Id": "c4ca4238a0b92382",
+      "Type": "STEP",
+      "Action": "START",
+      "Name": "initialize-order",
+      "SubType": "Step"
+    },
+    {
+      "Id": "c4ca4238a0b92382",
+      "Type": "STEP",
+      "Action": "SUCCEED",
+      "Name": "initialize-order",
+      "SubType": "Step",
+      "Payload": "{\"orderId\":\"e98a3fc8-b544-4505-919a-9772e4f39f23\",\"status\":\"PENDING\",\"executionArn\":\"\",\"timestamps\":{\"placed\":\"2025-11-18T21:21:01.489Z\"},\"createdAt\":\"2025-11-18T21:21:01.489Z\",\"updatedAt\":\"2025-11-18T21:21:01.489Z\"}"
+    },
+    {
+      "Id": "c81e728d9d4c2f63",
+      "Type": "STEP",
+      "Action": "START",
+      "Name": "publish-order-placed",
+      "SubType": "Step"
+    },
+    {
+      "Id": "c81e728d9d4c2f63",
+      "Type": "STEP",
+      "Action": "SUCCEED",
+      "Name": "publish-order-placed",
+      "SubType": "Step"
+    },
+    {
+      "Id": "eccbc87e4b5ce2fe",
+      "Type": "CONTEXT",
+      "Action": "START",
+      "Name": "parallel-validation",
+      "SubType": "Parallel"
+    },
+    {
+      "Id": "c9e6e7b69f98f516",
+      "Type": "CONTEXT",
+      "Action": "START",
+      "ParentId": "eccbc87e4b5ce2fe",
+      "Name": "event-config",
+      "SubType": "ParallelBranch"
+    },
+    {
+      "Id": "284ee898088b7efd",
+      "Type": "STEP",
+      "Action": "START",
+      "ParentId": "c9e6e7b69f98f516",
+      "Name": "fetch-event-config",
+      "SubType": "Step"
+    },
+    {
+      "Id": "b772d43b49bb57b5",
+      "Type": "CONTEXT",
+      "Action": "START",
+      "ParentId": "eccbc87e4b5ce2fe",
+      "Name": "previous-orders",
+      "SubType": "ParallelBranch"
+    },
+    {
+      "Id": "e9fa198e766d7b9b",
+      "Type": "STEP",
+      "Action": "START",
+      "ParentId": "b772d43b49bb57b5",
+      "Name": "fetch-attendee-orders",
+      "SubType": "Step"
+    },
+    {
+      "Id": "284ee898088b7efd",
+      "Type": "STEP",
+      "Action": "RETRY",
+      "ParentId": "c9e6e7b69f98f516",
+      "Name": "fetch-event-config",
+      "SubType": "Step",
+      "Error": {
+        "ErrorMessage": "The provided key element does not match the schema",
+        "ErrorType": "ValidationException",
+        "StackTrace": [
+          "ValidationException: The provided key element does not match the schema",
+          "    at throwDefaultError (/var/runtime/node_modules/@aws-sdk/node_modules/@smithy/smithy-client/dist-cjs/index.js:422:20)",
+          "    at /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/smithy-client/dist-cjs/index.js:431:5",
+          "    at de_CommandError (/var/runtime/node_modules/@aws-sdk/client-dynamodb/dist-cjs/index.js:2359:14)",
+          "    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)",
+          "    at async /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/middleware-serde/dist-cjs/index.js:36:20",
+          "    at async /var/runtime/node_modules/@aws-sdk/lib-dynamodb/dist-cjs/index.js:173:30",
+          "    at async /opt/nodejs/node_modules/@smithy/core/dist-cjs/index.js:121:20",
+          "    at async /opt/nodejs/node_modules/@smithy/middleware-retry/dist-cjs/index.js:254:46",
+          "    at async /opt/nodejs/node_modules/@aws-sdk/middleware-logger/dist-cjs/index.js:5:26",
+          "    at async n.step.retryStrategy (/private/var/folders/79/cf6pfnk12p342pn1m0njdy500000gq/T/tmp1ayd6gni/index.ts:323:32)"
+        ]
+      },
+      "StepOptions": {
+        "NextAttemptDelaySeconds": 1
+      }
+    },
+    {
+      "Id": "284ee898088b7efd",
+      "Type": "STEP",
+      "Action": "START",
+      "ParentId": "c9e6e7b69f98f516",
+      "Name": "fetch-event-config",
+      "SubType": "Step"
+    },
+    {
+      "Id": "e9fa198e766d7b9b",
+      "Type": "STEP",
+      "Action": "RETRY",
+      "ParentId": "b772d43b49bb57b5",
+      "Name": "fetch-attendee-orders",
+      "SubType": "Step",
+      "Error": {
+        "ErrorMessage": "ExpressionAttributeValues must not be empty",
+        "ErrorType": "ValidationException",
+        "StackTrace": [
+          "ValidationException: ExpressionAttributeValues must not be empty",
+          "    at throwDefaultError (/var/runtime/node_modules/@aws-sdk/node_modules/@smithy/smithy-client/dist-cjs/index.js:422:20)",
+          "    at /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/smithy-client/dist-cjs/index.js:431:5",
+          "    at de_CommandError (/var/runtime/node_modules/@aws-sdk/client-dynamodb/dist-cjs/index.js:2359:14)",
+          "    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)",
+          "    at async /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/middleware-serde/dist-cjs/index.js:36:20",
+          "    at async /var/runtime/node_modules/@aws-sdk/lib-dynamodb/dist-cjs/index.js:173:30",
+          "    at async /opt/nodejs/node_modules/@smithy/core/dist-cjs/index.js:121:20",
+          "    at async /opt/nodejs/node_modules/@smithy/middleware-retry/dist-cjs/index.js:254:46",
+          "    at async /opt/nodejs/node_modules/@aws-sdk/middleware-logger/dist-cjs/index.js:5:26",
+          "    at async n.step.retryStrategy (/private/var/folders/79/cf6pfnk12p342pn1m0njdy500000gq/T/tmp1ayd6gni/index.ts:340:32)"
+        ]
+      },
+      "StepOptions": {
+        "NextAttemptDelaySeconds": 1
+      }
+    },
+    {
+      "Id": "284ee898088b7efd",
+      "Type": "STEP",
+      "Action": "RETRY",
+      "ParentId": "c9e6e7b69f98f516",
+      "Name": "fetch-event-config",
+      "SubType": "Step",
+      "Error": {
+        "ErrorMessage": "The provided key element does not match the schema",
+        "ErrorType": "ValidationException",
+        "StackTrace": [
+          "ValidationException: The provided key element does not match the schema",
+          "    at throwDefaultError (/var/runtime/node_modules/@aws-sdk/node_modules/@smithy/smithy-client/dist-cjs/index.js:422:20)",
+          "    at /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/smithy-client/dist-cjs/index.js:431:5",
+          "    at de_CommandError (/var/runtime/node_modules/@aws-sdk/client-dynamodb/dist-cjs/index.js:2359:14)",
+          "    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)",
+          "    at async /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/middleware-serde/dist-cjs/index.js:36:20",
+          "    at async /var/runtime/node_modules/@aws-sdk/lib-dynamodb/dist-cjs/index.js:173:30",
+          "    at async /opt/nodejs/node_modules/@smithy/core/dist-cjs/index.js:121:20",
+          "    at async /opt/nodejs/node_modules/@smithy/middleware-retry/dist-cjs/index.js:254:46",
+          "    at async /opt/nodejs/node_modules/@aws-sdk/middleware-logger/dist-cjs/index.js:5:26",
+          "    at async n.step.retryStrategy (/private/var/folders/79/cf6pfnk12p342pn1m0njdy500000gq/T/tmp1ayd6gni/index.ts:323:32)"
+        ]
+      },
+      "StepOptions": {
+        "NextAttemptDelaySeconds": 1
+      }
+    }
+  ],
+  "UsedTokens": [
+    "eyJhcm4iOiIyOTBiZTNmMi03NTA3LTQ0NTEtYTkxMS04NTIwYWJjYTY2NDUiLCJzZXEiOjExfQ==",
+    "eyJhcm4iOiIyOTBiZTNmMi03NTA3LTQ0NTEtYTkxMS04NTIwYWJjYTY2NDUiLCJzZXEiOjE1fQ==",
+    "eyJhcm4iOiIyOTBiZTNmMi03NTA3LTQ0NTEtYTkxMS04NTIwYWJjYTY2NDUiLCJzZXEiOjEwfQ==",
+    "eyJhcm4iOiIyOTBiZTNmMi03NTA3LTQ0NTEtYTkxMS04NTIwYWJjYTY2NDUiLCJzZXEiOjEyfQ==",
+    "eyJhcm4iOiIyOTBiZTNmMi03NTA3LTQ0NTEtYTkxMS04NTIwYWJjYTY2NDUiLCJzZXEiOjR9",
+    "eyJhcm4iOiIyOTBiZTNmMi03NTA3LTQ0NTEtYTkxMS04NTIwYWJjYTY2NDUiLCJzZXEiOjV9",
+    "eyJhcm4iOiIyOTBiZTNmMi03NTA3LTQ0NTEtYTkxMS04NTIwYWJjYTY2NDUiLCJzZXEiOjF9",
+    "eyJhcm4iOiIyOTBiZTNmMi03NTA3LTQ0NTEtYTkxMS04NTIwYWJjYTY2NDUiLCJzZXEiOjN9",
+    "eyJhcm4iOiIyOTBiZTNmMi03NTA3LTQ0NTEtYTkxMS04NTIwYWJjYTY2NDUiLCJzZXEiOjJ9",
+    "eyJhcm4iOiIyOTBiZTNmMi03NTA3LTQ0NTEtYTkxMS04NTIwYWJjYTY2NDUiLCJzZXEiOjl9",
+    "eyJhcm4iOiIyOTBiZTNmMi03NTA3LTQ0NTEtYTkxMS04NTIwYWJjYTY2NDUiLCJzZXEiOjZ9",
+    "eyJhcm4iOiIyOTBiZTNmMi03NTA3LTQ0NTEtYTkxMS04NTIwYWJjYTY2NDUiLCJzZXEiOjE0fQ==",
+    "eyJhcm4iOiIyOTBiZTNmMi03NTA3LTQ0NTEtYTkxMS04NTIwYWJjYTY2NDUiLCJzZXEiOjd9"
+  ],
+  "TokenSequence": 15,
+  "IsComplete": true,
+  "Result": {
+    "Status": "FAILED",
+    "Error": {
+      "ErrorMessage": "Execution stopped by user request"
+    }
+  },
+  "ConsecutiveFailedInvocationAttempts": 0,
+  "CloseStatus": "STOPPED"
+}

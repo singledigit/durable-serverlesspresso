@@ -1,0 +1,16 @@
+{
+  "version": "0",
+  "id": "test-event-id",
+  "detail-type": "BARISTA_ACCEPT_ORDER",
+  "source": "coffee.ordering",
+  "account": "123456789012",
+  "time": "2025-11-14T14:00:00Z",
+  "region": "us-east-1",
+  "resources": [],
+  "detail": {
+    "orderId": "test-order-123",
+    "action": "ACCEPT",
+    "baristaId": "barista-456",
+    "timestamp": "2025-11-14T14:00:00Z"
+  }
+}

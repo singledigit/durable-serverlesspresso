@@ -1,0 +1,36 @@
+### Place Coffee Order (Async)
+POST http://127.0.0.1:3000/order
+Content-Type: application/json
+X-Amz-Invocation-Type: Event
+
+{
+  "orderId": "test-order-123",
+  "attendeeId": "test-attendee-456",
+  "eventId": "test-event-789",
+  "orderDetails": {
+    "drinkType": "latte",
+    "size": "medium",
+    "customizations": ["extra shot", "oat milk"]
+  },
+  "timestamp": "2025-11-18T14:00:00Z"
+}
+
+### Place Another Coffee Order (Async)
+POST http://127.0.0.1:3000/order
+Content-Type: application/json
+X-Amz-Invocation-Type: Event
+
+{
+  "orderId": "test-order-456",
+  "attendeeId": "test-attendee-789",
+  "eventId": "test-event-789",
+  "orderDetails": {
+    "drinkType": "cappuccino",
+    "size": "large",
+    "customizations": ["almond milk"]
+  },
+  "timestamp": "2025-11-18T15:00:00Z"
+}
+
+### Get Execution History
+GET http://127.0.0.1:3000/execution/history?executionArn=arn:aws:lambda:us-east-1:123456789012:function:coffee-orders:execution:test-order-123

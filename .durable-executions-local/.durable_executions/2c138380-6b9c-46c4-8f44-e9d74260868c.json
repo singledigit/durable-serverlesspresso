@@ -1,0 +1,370 @@
+{
+  "DurableExecutionArn": "2c138380-6b9c-46c4-8f44-e9d74260868c",
+  "StartInput": {
+    "AccountId": "123456789012",
+    "FunctionName": "function",
+    "FunctionQualifier": "$LATEST",
+    "ExecutionName": "test-001",
+    "ExecutionTimeoutSeconds": 900,
+    "ExecutionRetentionPeriodDays": 7,
+    "InvocationId": "cb84e8b2-d012-4d22-a733-48c3d709d624",
+    "Input": "{\n  \"orderId\": \"test-order-123\",\n  \"attendeeId\": \"test-attendee-456\",\n  \"eventId\": \"reinvent-2025\",\n  \"orderDetails\": {\n    \"drinkType\": \"latte\",\n    \"size\": \"medium\",\n    \"customizations\": [\"extra shot\", \"oat milk\"]\n  },\n  \"timestamp\": \"2025-11-14T14:00:00Z\"\n}\n"
+  },
+  "Operations": [
+    {
+      "Id": "cb84e8b2-d012-4d22-a733-48c3d709d624",
+      "Type": "EXECUTION",
+      "Status": "FAILED",
+      "Name": "test-001",
+      "StartTimestamp": 1763502391.033255,
+      "EndTimestamp": 1763502451.032361,
+      "ExecutionDetails": {
+        "InputPayload": "\"{\\n  \\\"orderId\\\": \\\"test-order-123\\\",\\n  \\\"attendeeId\\\": \\\"test-attendee-456\\\",\\n  \\\"eventId\\\": \\\"reinvent-2025\\\",\\n  \\\"orderDetails\\\": {\\n    \\\"drinkType\\\": \\\"latte\\\",\\n    \\\"size\\\": \\\"medium\\\",\\n    \\\"customizations\\\": [\\\"extra shot\\\", \\\"oat milk\\\"]\\n  },\\n  \\\"timestamp\\\": \\\"2025-11-14T14:00:00Z\\\"\\n}\\n\""
+      }
+    },
+    {
+      "Id": "c4ca4238a0b92382",
+      "Type": "STEP",
+      "Status": "SUCCEEDED",
+      "Name": "initialize-order",
+      "StartTimestamp": 1763502391.188236,
+      "EndTimestamp": 1763502391.497086,
+      "SubType": "Step",
+      "StepDetails": {
+        "Attempt": 1,
+        "Result": "{\"orderId\":\"test-order-123\",\"attendeeId\":\"test-attendee-456\",\"eventId\":\"reinvent-2025\",\"status\":\"PENDING\",\"orderDetails\":{\"drinkType\":\"latte\",\"size\":\"medium\",\"customizations\":[\"extra shot\",\"oat milk\"]},\"executionArn\":\"\",\"timestamps\":{\"placed\":\"2025-11-18T21:46:31.169Z\"},\"createdAt\":\"2025-11-18T21:46:31.169Z\",\"updatedAt\":\"2025-11-18T21:46:31.169Z\"}"
+      }
+    },
+    {
+      "Id": "c81e728d9d4c2f63",
+      "Type": "STEP",
+      "Status": "SUCCEEDED",
+      "Name": "publish-order-placed",
+      "StartTimestamp": 1763502391.51441,
+      "EndTimestamp": 1763502391.93983,
+      "SubType": "Step",
+      "StepDetails": {
+        "Attempt": 1
+      }
+    },
+    {
+      "Id": "eccbc87e4b5ce2fe",
+      "Type": "CONTEXT",
+      "Status": "SUCCEEDED",
+      "Name": "parallel-validation",
+      "StartTimestamp": 1763502391.965238,
+      "EndTimestamp": 1763502392.172427,
+      "SubType": "Parallel",
+      "ContextDetails": {
+        "Result": "{\"all\":[{\"result\":{\"openingTime\":\"08:00\",\"eventId\":\"reinvent-2025\",\"eventName\":\"re:Invent 2025\",\"maxOrdersPerAttendee\":5,\"updatedAt\":\"2025-01-18T21:26:00Z\",\"createdAt\":\"2025-01-18T21:26:00Z\",\"closingTime\":\"18:00\",\"storeOpen\":true},\"index\":0,\"status\":\"SUCCEEDED\"},{\"result\":[{\"executionArn\":\"\",\"orderId\":\"test-order-123\",\"updatedAt\":\"2025-11-18T21:46:31.169Z\",\"orderDetails\":{\"size\":\"medium\",\"drinkType\":\"latte\",\"customizations\":[\"extra shot\",\"oat milk\"]},\"status\":\"PENDING\",\"attendeeId\":\"test-attendee-456\",\"timestamps\":{\"placed\":\"2025-11-18T21:46:31.169Z\"},\"createdAt\":\"2025-11-18T21:46:31.169Z\",\"eventId\":\"reinvent-2025\"}],\"index\":1,\"status\":\"SUCCEEDED\"}],\"completionReason\":\"ALL_COMPLETED\"}"
+      }
+    },
+    {
+      "Id": "c9e6e7b69f98f516",
+      "Type": "CONTEXT",
+      "Status": "SUCCEEDED",
+      "ParentId": "eccbc87e4b5ce2fe",
+      "Name": "event-config",
+      "StartTimestamp": 1763502391.965253,
+      "EndTimestamp": 1763502392.028384,
+      "SubType": "ParallelBranch",
+      "ContextDetails": {
+        "Result": "{\"openingTime\":\"08:00\",\"eventId\":\"reinvent-2025\",\"eventName\":\"re:Invent 2025\",\"maxOrdersPerAttendee\":5,\"updatedAt\":\"2025-01-18T21:26:00Z\",\"createdAt\":\"2025-01-18T21:26:00Z\",\"closingTime\":\"18:00\",\"storeOpen\":true}"
+      }
+    },
+    {
+      "Id": "284ee898088b7efd",
+      "Type": "STEP",
+      "Status": "SUCCEEDED",
+      "ParentId": "c9e6e7b69f98f516",
+      "Name": "fetch-event-config",
+      "StartTimestamp": 1763502391.96526,
+      "EndTimestamp": 1763502392.023449,
+      "SubType": "Step",
+      "StepDetails": {
+        "Attempt": 1,
+        "Result": "{\"openingTime\":\"08:00\",\"eventId\":\"reinvent-2025\",\"eventName\":\"re:Invent 2025\",\"maxOrdersPerAttendee\":5,\"updatedAt\":\"2025-01-18T21:26:00Z\",\"createdAt\":\"2025-01-18T21:26:00Z\",\"closingTime\":\"18:00\",\"storeOpen\":true}"
+      }
+    },
+    {
+      "Id": "b772d43b49bb57b5",
+      "Type": "CONTEXT",
+      "Status": "SUCCEEDED",
+      "ParentId": "eccbc87e4b5ce2fe",
+      "Name": "previous-orders",
+      "StartTimestamp": 1763502391.965267,
+      "EndTimestamp": 1763502392.164455,
+      "SubType": "ParallelBranch",
+      "ContextDetails": {
+        "Result": "[{\"executionArn\":\"\",\"orderId\":\"test-order-123\",\"updatedAt\":\"2025-11-18T21:46:31.169Z\",\"orderDetails\":{\"size\":\"medium\",\"drinkType\":\"latte\",\"customizations\":[\"extra shot\",\"oat milk\"]},\"status\":\"PENDING\",\"attendeeId\":\"test-attendee-456\",\"timestamps\":{\"placed\":\"2025-11-18T21:46:31.169Z\"},\"createdAt\":\"2025-11-18T21:46:31.169Z\",\"eventId\":\"reinvent-2025\"}]"
+      }
+    },
+    {
+      "Id": "e9fa198e766d7b9b",
+      "Type": "STEP",
+      "Status": "SUCCEEDED",
+      "ParentId": "b772d43b49bb57b5",
+      "Name": "fetch-attendee-orders",
+      "StartTimestamp": 1763502391.965275,
+      "EndTimestamp": 1763502392.152384,
+      "SubType": "Step",
+      "StepDetails": {
+        "Attempt": 1,
+        "Result": "[{\"executionArn\":\"\",\"orderId\":\"test-order-123\",\"updatedAt\":\"2025-11-18T21:46:31.169Z\",\"orderDetails\":{\"size\":\"medium\",\"drinkType\":\"latte\",\"customizations\":[\"extra shot\",\"oat milk\"]},\"status\":\"PENDING\",\"attendeeId\":\"test-attendee-456\",\"timestamps\":{\"placed\":\"2025-11-18T21:46:31.169Z\"},\"createdAt\":\"2025-11-18T21:46:31.169Z\",\"eventId\":\"reinvent-2025\"}]"
+      }
+    },
+    {
+      "Id": "a87ff679a2f3e71d",
+      "Type": "STEP",
+      "Status": "SUCCEEDED",
+      "Name": "publish-order-queued",
+      "StartTimestamp": 1763502392.177814,
+      "EndTimestamp": 1763502392.318352,
+      "SubType": "Step",
+      "StepDetails": {
+        "Attempt": 1
+      }
+    },
+    {
+      "Id": "e4da3b7fbbce2345",
+      "Type": "CONTEXT",
+      "Status": "SUCCEEDED",
+      "StartTimestamp": 1763502392.333413,
+      "EndTimestamp": 1763502451.007916,
+      "SubType": "WaitForCallback",
+      "ContextDetails": {
+        "Result": "\"'{\\\"action\\\": \\\"ACCEPT\\\", \\\"baristaId\\\": \\\"barista-123\\\"}'\""
+      }
+    },
+    {
+      "Id": "19a1de167122a18a",
+      "Type": "CALLBACK",
+      "Status": "SUCCEEDED",
+      "ParentId": "e4da3b7fbbce2345",
+      "StartTimestamp": 1763502392.335086,
+      "EndTimestamp": 1763502450.975862,
+      "SubType": "Callback",
+      "CallbackDetails": {
+        "CallbackId": "eyJhcm4iOiIyYzEzODM4MC02YjljLTQ2YzQtOGY0NC1lOWQ3NDI2MDg2OGMiLCJvcCI6IjE5YTFkZTE2NzEyMmExOGEifQ==",
+        "Result": "'{\"action\": \"ACCEPT\", \"baristaId\": \"barista-123\"}'"
+      }
+    },
+    {
+      "Id": "dca19ffa163054fe",
+      "Type": "STEP",
+      "Status": "SUCCEEDED",
+      "ParentId": "e4da3b7fbbce2345",
+      "StartTimestamp": 1763502392.342711,
+      "EndTimestamp": 1763502392.400606,
+      "SubType": "Step",
+      "StepDetails": {
+        "Attempt": 1
+      }
+    }
+  ],
+  "Updates": [
+    {
+      "Id": "c4ca4238a0b92382",
+      "Type": "STEP",
+      "Action": "START",
+      "Name": "initialize-order",
+      "SubType": "Step"
+    },
+    {
+      "Id": "c4ca4238a0b92382",
+      "Type": "STEP",
+      "Action": "SUCCEED",
+      "Name": "initialize-order",
+      "SubType": "Step",
+      "Payload": "{\"orderId\":\"test-order-123\",\"attendeeId\":\"test-attendee-456\",\"eventId\":\"reinvent-2025\",\"status\":\"PENDING\",\"orderDetails\":{\"drinkType\":\"latte\",\"size\":\"medium\",\"customizations\":[\"extra shot\",\"oat milk\"]},\"executionArn\":\"\",\"timestamps\":{\"placed\":\"2025-11-18T21:46:31.169Z\"},\"createdAt\":\"2025-11-18T21:46:31.169Z\",\"updatedAt\":\"2025-11-18T21:46:31.169Z\"}"
+    },
+    {
+      "Id": "c81e728d9d4c2f63",
+      "Type": "STEP",
+      "Action": "START",
+      "Name": "publish-order-placed",
+      "SubType": "Step"
+    },
+    {
+      "Id": "c81e728d9d4c2f63",
+      "Type": "STEP",
+      "Action": "SUCCEED",
+      "Name": "publish-order-placed",
+      "SubType": "Step"
+    },
+    {
+      "Id": "eccbc87e4b5ce2fe",
+      "Type": "CONTEXT",
+      "Action": "START",
+      "Name": "parallel-validation",
+      "SubType": "Parallel"
+    },
+    {
+      "Id": "c9e6e7b69f98f516",
+      "Type": "CONTEXT",
+      "Action": "START",
+      "ParentId": "eccbc87e4b5ce2fe",
+      "Name": "event-config",
+      "SubType": "ParallelBranch"
+    },
+    {
+      "Id": "284ee898088b7efd",
+      "Type": "STEP",
+      "Action": "START",
+      "ParentId": "c9e6e7b69f98f516",
+      "Name": "fetch-event-config",
+      "SubType": "Step"
+    },
+    {
+      "Id": "b772d43b49bb57b5",
+      "Type": "CONTEXT",
+      "Action": "START",
+      "ParentId": "eccbc87e4b5ce2fe",
+      "Name": "previous-orders",
+      "SubType": "ParallelBranch"
+    },
+    {
+      "Id": "e9fa198e766d7b9b",
+      "Type": "STEP",
+      "Action": "START",
+      "ParentId": "b772d43b49bb57b5",
+      "Name": "fetch-attendee-orders",
+      "SubType": "Step"
+    },
+    {
+      "Id": "284ee898088b7efd",
+      "Type": "STEP",
+      "Action": "SUCCEED",
+      "ParentId": "c9e6e7b69f98f516",
+      "Name": "fetch-event-config",
+      "SubType": "Step",
+      "Payload": "{\"openingTime\":\"08:00\",\"eventId\":\"reinvent-2025\",\"eventName\":\"re:Invent 2025\",\"maxOrdersPerAttendee\":5,\"updatedAt\":\"2025-01-18T21:26:00Z\",\"createdAt\":\"2025-01-18T21:26:00Z\",\"closingTime\":\"18:00\",\"storeOpen\":true}"
+    },
+    {
+      "Id": "c9e6e7b69f98f516",
+      "Type": "CONTEXT",
+      "Action": "SUCCEED",
+      "ParentId": "eccbc87e4b5ce2fe",
+      "Name": "event-config",
+      "SubType": "ParallelBranch",
+      "Payload": "{\"openingTime\":\"08:00\",\"eventId\":\"reinvent-2025\",\"eventName\":\"re:Invent 2025\",\"maxOrdersPerAttendee\":5,\"updatedAt\":\"2025-01-18T21:26:00Z\",\"createdAt\":\"2025-01-18T21:26:00Z\",\"closingTime\":\"18:00\",\"storeOpen\":true}"
+    },
+    {
+      "Id": "e9fa198e766d7b9b",
+      "Type": "STEP",
+      "Action": "SUCCEED",
+      "ParentId": "b772d43b49bb57b5",
+      "Name": "fetch-attendee-orders",
+      "SubType": "Step",
+      "Payload": "[{\"executionArn\":\"\",\"orderId\":\"test-order-123\",\"updatedAt\":\"2025-11-18T21:46:31.169Z\",\"orderDetails\":{\"size\":\"medium\",\"drinkType\":\"latte\",\"customizations\":[\"extra shot\",\"oat milk\"]},\"status\":\"PENDING\",\"attendeeId\":\"test-attendee-456\",\"timestamps\":{\"placed\":\"2025-11-18T21:46:31.169Z\"},\"createdAt\":\"2025-11-18T21:46:31.169Z\",\"eventId\":\"reinvent-2025\"}]"
+    },
+    {
+      "Id": "b772d43b49bb57b5",
+      "Type": "CONTEXT",
+      "Action": "SUCCEED",
+      "ParentId": "eccbc87e4b5ce2fe",
+      "Name": "previous-orders",
+      "SubType": "ParallelBranch",
+      "Payload": "[{\"executionArn\":\"\",\"orderId\":\"test-order-123\",\"updatedAt\":\"2025-11-18T21:46:31.169Z\",\"orderDetails\":{\"size\":\"medium\",\"drinkType\":\"latte\",\"customizations\":[\"extra shot\",\"oat milk\"]},\"status\":\"PENDING\",\"attendeeId\":\"test-attendee-456\",\"timestamps\":{\"placed\":\"2025-11-18T21:46:31.169Z\"},\"createdAt\":\"2025-11-18T21:46:31.169Z\",\"eventId\":\"reinvent-2025\"}]"
+    },
+    {
+      "Id": "eccbc87e4b5ce2fe",
+      "Type": "CONTEXT",
+      "Action": "SUCCEED",
+      "Name": "parallel-validation",
+      "SubType": "Parallel",
+      "Payload": "{\"all\":[{\"result\":{\"openingTime\":\"08:00\",\"eventId\":\"reinvent-2025\",\"eventName\":\"re:Invent 2025\",\"maxOrdersPerAttendee\":5,\"updatedAt\":\"2025-01-18T21:26:00Z\",\"createdAt\":\"2025-01-18T21:26:00Z\",\"closingTime\":\"18:00\",\"storeOpen\":true},\"index\":0,\"status\":\"SUCCEEDED\"},{\"result\":[{\"executionArn\":\"\",\"orderId\":\"test-order-123\",\"updatedAt\":\"2025-11-18T21:46:31.169Z\",\"orderDetails\":{\"size\":\"medium\",\"drinkType\":\"latte\",\"customizations\":[\"extra shot\",\"oat milk\"]},\"status\":\"PENDING\",\"attendeeId\":\"test-attendee-456\",\"timestamps\":{\"placed\":\"2025-11-18T21:46:31.169Z\"},\"createdAt\":\"2025-11-18T21:46:31.169Z\",\"eventId\":\"reinvent-2025\"}],\"index\":1,\"status\":\"SUCCEEDED\"}],\"completionReason\":\"ALL_COMPLETED\"}"
+    },
+    {
+      "Id": "a87ff679a2f3e71d",
+      "Type": "STEP",
+      "Action": "START",
+      "Name": "publish-order-queued",
+      "SubType": "Step"
+    },
+    {
+      "Id": "a87ff679a2f3e71d",
+      "Type": "STEP",
+      "Action": "SUCCEED",
+      "Name": "publish-order-queued",
+      "SubType": "Step"
+    },
+    {
+      "Id": "e4da3b7fbbce2345",
+      "Type": "CONTEXT",
+      "Action": "START",
+      "SubType": "WaitForCallback"
+    },
+    {
+      "Id": "19a1de167122a18a",
+      "Type": "CALLBACK",
+      "Action": "START",
+      "ParentId": "e4da3b7fbbce2345",
+      "SubType": "Callback",
+      "CallbackOptions": {
+        "TimeoutSeconds": 120,
+        "HeartbeatTimeoutSeconds": 0
+      }
+    },
+    {
+      "Id": "dca19ffa163054fe",
+      "Type": "STEP",
+      "Action": "START",
+      "ParentId": "e4da3b7fbbce2345",
+      "SubType": "Step"
+    },
+    {
+      "Id": "dca19ffa163054fe",
+      "Type": "STEP",
+      "Action": "SUCCEED",
+      "ParentId": "e4da3b7fbbce2345",
+      "SubType": "Step"
+    },
+    {
+      "Id": "e4da3b7fbbce2345",
+      "Type": "CONTEXT",
+      "Action": "SUCCEED",
+      "SubType": "WaitForCallback",
+      "Payload": "\"'{\\\"action\\\": \\\"ACCEPT\\\", \\\"baristaId\\\": \\\"barista-123\\\"}'\""
+    }
+  ],
+  "UsedTokens": [
+    "eyJhcm4iOiIyYzEzODM4MC02YjljLTQ2YzQtOGY0NC1lOWQ3NDI2MDg2OGMiLCJzZXEiOjF9",
+    "eyJhcm4iOiIyYzEzODM4MC02YjljLTQ2YzQtOGY0NC1lOWQ3NDI2MDg2OGMiLCJzZXEiOjEwfQ==",
+    "eyJhcm4iOiIyYzEzODM4MC02YjljLTQ2YzQtOGY0NC1lOWQ3NDI2MDg2OGMiLCJzZXEiOjEyfQ==",
+    "eyJhcm4iOiIyYzEzODM4MC02YjljLTQ2YzQtOGY0NC1lOWQ3NDI2MDg2OGMiLCJzZXEiOjE2fQ==",
+    "eyJhcm4iOiIyYzEzODM4MC02YjljLTQ2YzQtOGY0NC1lOWQ3NDI2MDg2OGMiLCJzZXEiOjN9",
+    "eyJhcm4iOiIyYzEzODM4MC02YjljLTQ2YzQtOGY0NC1lOWQ3NDI2MDg2OGMiLCJzZXEiOjE4fQ==",
+    "eyJhcm4iOiIyYzEzODM4MC02YjljLTQ2YzQtOGY0NC1lOWQ3NDI2MDg2OGMiLCJzZXEiOjZ9",
+    "eyJhcm4iOiIyYzEzODM4MC02YjljLTQ2YzQtOGY0NC1lOWQ3NDI2MDg2OGMiLCJzZXEiOjJ9",
+    "eyJhcm4iOiIyYzEzODM4MC02YjljLTQ2YzQtOGY0NC1lOWQ3NDI2MDg2OGMiLCJzZXEiOjd9",
+    "eyJhcm4iOiIyYzEzODM4MC02YjljLTQ2YzQtOGY0NC1lOWQ3NDI2MDg2OGMiLCJzZXEiOjV9",
+    "eyJhcm4iOiIyYzEzODM4MC02YjljLTQ2YzQtOGY0NC1lOWQ3NDI2MDg2OGMiLCJzZXEiOjh9",
+    "eyJhcm4iOiIyYzEzODM4MC02YjljLTQ2YzQtOGY0NC1lOWQ3NDI2MDg2OGMiLCJzZXEiOjl9",
+    "eyJhcm4iOiIyYzEzODM4MC02YjljLTQ2YzQtOGY0NC1lOWQ3NDI2MDg2OGMiLCJzZXEiOjE1fQ==",
+    "eyJhcm4iOiIyYzEzODM4MC02YjljLTQ2YzQtOGY0NC1lOWQ3NDI2MDg2OGMiLCJzZXEiOjEzfQ==",
+    "eyJhcm4iOiIyYzEzODM4MC02YjljLTQ2YzQtOGY0NC1lOWQ3NDI2MDg2OGMiLCJzZXEiOjE0fQ==",
+    "eyJhcm4iOiIyYzEzODM4MC02YjljLTQ2YzQtOGY0NC1lOWQ3NDI2MDg2OGMiLCJzZXEiOjExfQ==",
+    "eyJhcm4iOiIyYzEzODM4MC02YjljLTQ2YzQtOGY0NC1lOWQ3NDI2MDg2OGMiLCJzZXEiOjR9",
+    "eyJhcm4iOiIyYzEzODM4MC02YjljLTQ2YzQtOGY0NC1lOWQ3NDI2MDg2OGMiLCJzZXEiOjE5fQ=="
+  ],
+  "TokenSequence": 19,
+  "IsComplete": true,
+  "Result": {
+    "Status": "FAILED",
+    "Error": {
+      "ErrorMessage": "Invalid callback result format",
+      "ErrorType": "Error",
+      "StackTrace": [
+        "Error: Invalid callback result format",
+        "    at parseCallbackResult (/private/var/folders/79/cf6pfnk12p342pn1m0njdy500000gq/T/tmpsrqcyc7k/utils.ts:17:13)",
+        "    at <anonymous> (/private/var/folders/79/cf6pfnk12p342pn1m0njdy500000gq/T/tmpsrqcyc7k/index.ts:492:24)",
+        "    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)",
+        "    at async runHandler (/opt/nodejs/node_modules/aws-durable-execution-sdk-js/src/with-durable-execution.ts:91:34)",
+        "    at async Runtime.handler (/opt/nodejs/node_modules/aws-durable-execution-sdk-js/src/with-durable-execution.ts:213:18)"
+      ]
+    }
+  },
+  "ConsecutiveFailedInvocationAttempts": 0,
+  "CloseStatus": "FAILED"
+}

@@ -1,0 +1,13 @@
+{
+  "httpMethod": "GET",
+  "path": "/execution/history",
+  "pathParameters": {
+    "executionArn": "test-arn"
+  },
+  "queryStringParameters": {
+    "orderId": "test-order-123"
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  }
+}

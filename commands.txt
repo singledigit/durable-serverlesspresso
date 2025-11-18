@@ -1,0 +1,37 @@
+# Durable Functions Commands Reference
+
+## Local Development Commands
+
+### Build & Deploy
+sam build
+sam deploy --stack-name coffee-ordering --profile private --region us-east-1 --capabilities CAPABILITY_IAM --resolve-s3
+
+### Local Invocation
+sam local invoke CoffeeOrdersFunction --event events/coffee-order-test.json --durable-execution-name test-001 -n locals.json
+
+### Execution Management (Local)
+# Get execution details
+sam local execution get $EXECUTION_ARN
+
+# View execution history (table format)
+sam local execution history $EXECUTION_ARN
+
+# View execution history (JSON format)
+sam local execution history $EXECUTION_ARN --format json
+
+# Stop a running execution
+sam local execution stop $EXECUTION_ARN
+
+### Callback Management (Local)
+# Send success callback
+sam local callback succeed $CALLBACK_ID --result '{"action": "ACCEPT", "baristaId": "barista-123"}'
+
+# Send heartbeat
+sam local callback heartbeat $CALLBACK_ID
+
+# Send failure callback
+sam local callback fail $CALLBACK_ID --error '{"message": "Rejected"}'
+
+### Testing
+cd src/coffee-orders
+npm test

@@ -1,0 +1,22 @@
+.idea
+/node_modules
+*/node_modules
+/build
+*/build
+/dist
+*/dist
+/coverage
+*/coverage
+*.iml
+.aws-sam/*
+*.zip
+.DS_Store
+.eslintcache
+
+# Environment files
+.secrets
+.env
+.env.local
+
+# Node version
+.nvmrc

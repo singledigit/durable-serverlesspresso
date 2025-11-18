@@ -1,0 +1,794 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Coffee Ordering Durable Function Application
+
+Globals:
+  Function:
+    Runtime: nodejs22.x
+    Architectures:
+      - arm64
+    Timeout: 30
+    MemorySize: 512
+    Tracing: Active
+
+Resources:
+  # ========== LAMBDA LAYERS ==========
+  
+  DurableSdkLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: durable-sdk
+      Description: AWS Durable Execution SDK for orchestrator functions
+      ContentUri: src/durable-sdk/
+      CompatibleRuntimes:
+        - nodejs22.x
+        - nodejs20.x
+      RetentionPolicy: Delete
+    Metadata:
+      BuildMethod: makefile
+
+  DurableClientLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: durable-client-sdk
+      Description: AWS SDK Lambda Client with Durable Execution commands
+      ContentUri: src/durable-client/
+      CompatibleRuntimes:
+        - nodejs22.x
+        - nodejs20.x
+      RetentionPolicy: Delete
+    Metadata:
+      BuildMethod: makefile
+
+  # ========== DYNAMODB TABLES ==========
+  
+  ConfigTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: CoffeeOrderingConfig
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: eventId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: eventId
+          KeyType: HASH
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  OrdersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: CoffeeOrders
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: orderId
+          AttributeType: S
+        - AttributeName: attendeeId
+          AttributeType: S
+        - AttributeName: eventId
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: S
+      KeySchema:
+        - AttributeName: orderId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: AttendeeEventIndex
+          KeySchema:
+            - AttributeName: attendeeId
+              KeyType: HASH
+            - AttributeName: eventId
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: StatusIndex
+          KeySchema:
+            - AttributeName: status
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: EventTimeIndex
+          KeySchema:
+            - AttributeName: eventId
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  # ========== EVENTBRIDGE ==========
+  
+  EventBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: CoffeeOrderingEventBus
+
+  # ========== APPSYNC EVENTS API ==========
+  
+  AppSyncEventsApi:
+    Type: AWS::AppSync::Api
+    Properties:
+      Name: CoffeeOrderingEventsApi
+      EventConfig:
+        AuthProviders:
+          - AuthType: API_KEY
+        ConnectionAuthModes:
+          - AuthType: API_KEY
+        DefaultPublishAuthModes:
+          - AuthType: API_KEY
+        DefaultSubscribeAuthModes:
+          - AuthType: API_KEY
+
+  AppSyncApiKey:
+    Type: AWS::AppSync::ApiKey
+    Properties:
+      ApiId: !GetAtt AppSyncEventsApi.ApiId
+      Description: API Key for Coffee Ordering Events API
+
+  AppSyncChannelNamespace:
+    Type: AWS::AppSync::ChannelNamespace
+    Properties:
+      ApiId: !GetAtt AppSyncEventsApi.ApiId
+      Name: coffee-ordering
+
+  # ========== API GATEWAY ==========
+  
+  CoffeeOrderingApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: CoffeeOrderingApi
+      StageName: prod
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
+      DefinitionBody:
+        openapi: 3.0.1
+        info:
+          title: Coffee Ordering API
+          version: '1.0'
+        paths:
+          /orders:
+            get:
+              summary: Get orders with optional filtering
+              parameters:
+                - name: eventId
+                  in: query
+                  schema:
+                    type: string
+                - name: status
+                  in: query
+                  schema:
+                    type: string
+                - name: limit
+                  in: query
+                  schema:
+                    type: integer
+              x-amazon-apigateway-integration:
+                type: aws
+                httpMethod: POST
+                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:dynamodb:action/Query'
+                credentials: !GetAtt ApiGatewayRole.Arn
+                passthroughBehavior: never
+                requestTemplates:
+                  application/json: !Sub |
+                    #set($status = $input.params('status'))
+                    #set($eventId = $input.params('eventId'))
+                    #set($limit = $input.params('limit'))
+                    #if($limit == "")
+                      #set($limit = "100")
+                    #end
+                    #if($status == "" && $eventId != "")
+                      {
+                        "TableName": "${OrdersTable}",
+                        "IndexName": "EventTimeIndex",
+                        "KeyConditionExpression": "eventId = :eventId",
+                        "ExpressionAttributeValues": {
+                          ":eventId": {"S": "$eventId"}
+                        },
+                        "Limit": $limit,
+                        "ScanIndexForward": false
+                      }
+                    #elseif($status != "")
+                      #set($statusList = $status.split(","))
+                      #set($firstStatus = $statusList[0])
+                      {
+                        "TableName": "${OrdersTable}",
+                        "IndexName": "StatusIndex",
+                        "KeyConditionExpression": "#status = :status",
+                        "ExpressionAttributeNames": {"#status": "status"},
+                        "ExpressionAttributeValues": {
+                          ":status": {"S": "$firstStatus"}
+                        },
+                        "Limit": $limit,
+                        "ScanIndexForward": false
+                      }
+                    #else
+                      {
+                        "TableName": "${OrdersTable}",
+                        "IndexName": "StatusIndex",
+                        "KeyConditionExpression": "#status = :status",
+                        "ExpressionAttributeNames": {"#status": "status"},
+                        "ExpressionAttributeValues": {
+                          ":status": {"S": "QUEUED"}
+                        },
+                        "Limit": $limit,
+                        "ScanIndexForward": false
+                      }
+                    #end
+                responses:
+                  default:
+                    statusCode: 200
+                    responseTemplates:
+                      application/json: |
+                        #set($items = $input.path('$.Items'))
+                        {
+                          "orders": [
+                        #foreach($item in $items)
+                            {
+                              "orderId": "$item.orderId.S",
+                              "attendeeId": "$item.attendeeId.S",
+                              "eventId": "$item.eventId.S",
+                              "status": "$item.status.S",
+                              "createdAt": "$item.createdAt.S",
+                              "updatedAt": "$item.updatedAt.S",
+                              "orderDetails": {
+                                "drinkType": "$item.orderDetails.M.drinkType.S",
+                                "size": "$item.orderDetails.M.size.S"
+                              },
+                              "timestamps": {
+                                "placed": "$item.timestamps.M.placed.S"
+                              }
+                            }#if($foreach.hasNext),#end
+                        #end
+                          ],
+                          "count": $items.size()
+                        }
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+              responses:
+                '200':
+                  description: List of orders
+                  headers:
+                    Access-Control-Allow-Origin:
+                      schema:
+                        type: string
+            post:
+              summary: Place a new coffee order
+              x-amazon-apigateway-integration:
+                type: aws
+                httpMethod: POST
+                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CoffeeOrdersFunction.Alias}/invocations'
+                credentials: !GetAtt ApiGatewayRole.Arn
+                passthroughBehavior: never
+                requestParameters:
+                  integration.request.header.X-Amz-Invocation-Type: "'Event'"
+                requestTemplates:
+                  application/json: |
+                    #set($orderId = $context.requestId)
+                    {
+                      "orderId": "$orderId",
+                      "attendeeId": $input.json('$.attendeeId'),
+                      "eventId": $input.json('$.eventId'),
+                      "orderDetails": $input.json('$.orderDetails'),
+                      "timestamp": "$context.requestTime"
+                    }
+                responses:
+                  default:
+                    statusCode: 202
+                    responseTemplates:
+                      application/json: |
+                        #set($orderId = $context.requestId)
+                        {
+                          "orderId": "$orderId",
+                          "status": "PENDING",
+                          "message": "Order placed successfully"
+                        }
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                  '4\d{2}':
+                    statusCode: 400
+                    responseTemplates:
+                      application/json: |
+                        {
+                          "error": {
+                            "code": "INVALID_REQUEST",
+                            "message": "Invalid request body"
+                          }
+                        }
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                  '5\d{2}':
+                    statusCode: 500
+                    responseTemplates:
+                      application/json: |
+                        {
+                          "error": {
+                            "code": "INTERNAL_ERROR",
+                            "message": "Internal server error"
+                          }
+                        }
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+              responses:
+                '202':
+                  description: Order accepted
+                  headers:
+                    Access-Control-Allow-Origin:
+                      schema:
+                        type: string
+                '400':
+                  description: Invalid request
+                  headers:
+                    Access-Control-Allow-Origin:
+                      schema:
+                        type: string
+                '500':
+                  description: Internal error
+                  headers:
+                    Access-Control-Allow-Origin:
+                      schema:
+                        type: string
+            options:
+              summary: CORS support
+              x-amazon-apigateway-integration:
+                type: mock
+                requestTemplates:
+                  application/json: '{"statusCode": 200}'
+                responses:
+                  default:
+                    statusCode: 200
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+                      method.response.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+              responses:
+                '200':
+                  description: CORS headers
+                  headers:
+                    Access-Control-Allow-Headers:
+                      schema:
+                        type: string
+                    Access-Control-Allow-Methods:
+                      schema:
+                        type: string
+                    Access-Control-Allow-Origin:
+                      schema:
+                        type: string
+          /execution/history:
+            get:
+              summary: Get execution history
+              x-amazon-apigateway-integration:
+                type: aws_proxy
+                httpMethod: POST
+                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetExecutionHistoryFunction.Arn}/invocations'
+              responses:
+                '200':
+                  description: Execution history
+                  headers:
+                    Access-Control-Allow-Origin:
+                      schema:
+                        type: string
+          /barista/accept/{orderId}:
+            post:
+              summary: Barista accepts order
+              parameters:
+                - name: orderId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+              x-amazon-apigateway-integration:
+                type: aws
+                httpMethod: POST
+                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:events:path//'
+                credentials: !GetAtt ApiGatewayRole.Arn
+                passthroughBehavior: never
+                requestParameters:
+                  integration.request.header.X-Amz-Target: "'AWSEvents.PutEvents'"
+                  integration.request.header.Content-Type: "'application/x-amz-json-1.1'"
+                requestTemplates:
+                  application/json: !Sub |
+                    {
+                      "Entries": [{
+                        "Source": "coffee.ordering",
+                        "DetailType": "BARISTA_ACCEPT_ORDER",
+                        "Detail": "{\"orderId\": \"$input.params('orderId')\", \"action\": \"ACCEPT\", \"baristaId\": \"$util.escapeJavaScript($input.path('$.baristaId'))\", \"timestamp\": \"$context.requestTime\"}",
+                        "EventBusName": "${EventBus}"
+                      }]
+                    }
+                responses:
+                  default:
+                    statusCode: 200
+                    responseTemplates:
+                      application/json: |
+                        {"success": true, "message": "Order accepted"}
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+              responses:
+                '200':
+                  description: Order accepted
+                  headers:
+                    Access-Control-Allow-Origin:
+                      schema:
+                        type: string
+          /barista/complete/{orderId}:
+            post:
+              summary: Barista completes order
+              parameters:
+                - name: orderId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+              x-amazon-apigateway-integration:
+                type: aws
+                httpMethod: POST
+                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:events:path//'
+                credentials: !GetAtt ApiGatewayRole.Arn
+                passthroughBehavior: never
+                requestParameters:
+                  integration.request.header.X-Amz-Target: "'AWSEvents.PutEvents'"
+                  integration.request.header.Content-Type: "'application/x-amz-json-1.1'"
+                requestTemplates:
+                  application/json: !Sub |
+                    {
+                      "Entries": [{
+                        "Source": "coffee.ordering",
+                        "DetailType": "BARISTA_COMPLETE_ORDER",
+                        "Detail": "{\"orderId\": \"$input.params('orderId')\", \"action\": \"COMPLETE\", \"baristaId\": \"$util.escapeJavaScript($input.path('$.baristaId'))\", \"timestamp\": \"$context.requestTime\"}",
+                        "EventBusName": "${EventBus}"
+                      }]
+                    }
+                responses:
+                  default:
+                    statusCode: 200
+                    responseTemplates:
+                      application/json: |
+                        {"success": true, "message": "Order completed"}
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+              responses:
+                '200':
+                  description: Order completed
+                  headers:
+                    Access-Control-Allow-Origin:
+                      schema:
+                        type: string
+          /orders/{orderId}/cancel:
+            post:
+              summary: Cancel order
+              parameters:
+                - name: orderId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+              x-amazon-apigateway-integration:
+                type: aws
+                httpMethod: POST
+                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:events:path//'
+                credentials: !GetAtt ApiGatewayRole.Arn
+                passthroughBehavior: never
+                requestParameters:
+                  integration.request.header.X-Amz-Target: "'AWSEvents.PutEvents'"
+                  integration.request.header.Content-Type: "'application/x-amz-json-1.1'"
+                requestTemplates:
+                  application/json: !Sub |
+                    {
+                      "Entries": [{
+                        "Source": "coffee.ordering",
+                        "DetailType": "ORDER_CANCEL_REQUEST",
+                        "Detail": "{\"orderId\": \"$input.params('orderId')\", \"action\": \"CANCEL\", \"reason\": \"$util.escapeJavaScript($input.path('$.reason'))\", \"cancelledBy\": \"$util.escapeJavaScript($input.path('$.cancelledBy'))\", \"timestamp\": \"$context.requestTime\"}",
+                        "EventBusName": "${EventBus}"
+                      }]
+                    }
+                responses:
+                  default:
+                    statusCode: 200
+                    responseTemplates:
+                      application/json: |
+                        {"success": true, "message": "Cancellation request submitted"}
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+              responses:
+                '200':
+                  description: Cancellation submitted
+                  headers:
+                    Access-Control-Allow-Origin:
+                      schema:
+                        type: string
+
+  ApiGatewayRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: InvokeLambda
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource:
+                  - !GetAtt CoffeeOrdersFunction.Arn
+                  - !Sub '${CoffeeOrdersFunction.Arn}:*'
+                  - !Ref CoffeeOrdersFunction.Alias
+                  - !GetAtt GetExecutionHistoryFunction.Arn
+        - PolicyName: QueryDynamoDB
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: dynamodb:Query
+                Resource:
+                  - !GetAtt OrdersTable.Arn
+                  - !Sub '${OrdersTable.Arn}/index/*'
+        - PolicyName: PutEvents
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: events:PutEvents
+                Resource: !GetAtt EventBus.Arn
+
+  # ========== IAM ROLES ==========
+  
+  DurableFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DurableExecutionPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:CheckpointDurableExecution
+                  - lambda:GetDurableExecutionState
+                Resource: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:sev2-CoffeeOrdersFunction-*'
+        - PolicyName: DynamoDBAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:Query
+                Resource:
+                  - !GetAtt ConfigTable.Arn
+                  - !GetAtt OrdersTable.Arn
+                  - !Sub '${OrdersTable.Arn}/index/AttendeeEventIndex'
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                Resource: !GetAtt OrdersTable.Arn
+        - PolicyName: EventBridgeAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: events:PutEvents
+                Resource: !GetAtt EventBus.Arn
+
+  # ========== LAMBDA FUNCTIONS ==========
+  
+  CoffeeOrdersFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/coffee-orders
+      Handler: index.handler
+      Role: !GetAtt DurableFunctionRole.Arn
+      Timeout: 60
+      Layers:
+        - !Ref DurableSdkLayer
+      DurableConfig:
+        ExecutionTimeout: 300
+        RetentionPeriodInDays: 7
+      Environment:
+        Variables:
+          ORDERS_TABLE_NAME: !Ref OrdersTable
+          CONFIG_TABLE_NAME: !Ref ConfigTable
+          EVENT_BUS_NAME: !Ref EventBus
+      AutoPublishAlias: live
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: true
+        EntryPoints:
+          - index.ts
+        External:
+          - '@aws-sdk/*'
+          - aws-durable-execution-sdk-js
+
+  CallbackHandlerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/callback-handler
+      Handler: index.handler
+      Layers:
+        - !Ref DurableClientLayer
+      Environment:
+        Variables:
+          ORDERS_TABLE_NAME: !Ref OrdersTable
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref OrdersTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - lambda:SendDurableExecutionCallbackSuccess
+                - lambda:SendDurableExecutionCallbackFailure
+              Resource: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:sev2-CoffeeOrdersFunction-*'
+      Events:
+        BaristaAcceptOrder:
+          Type: EventBridgeRule
+          Properties:
+            EventBusName: !Ref EventBus
+            Pattern:
+              source:
+                - coffee.ordering
+              detail-type:
+                - BARISTA_ACCEPT_ORDER
+                - BARISTA_COMPLETE_ORDER
+                - BARISTA_CANCEL_ORDER
+                - ORDER_CANCEL_REQUEST
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: true
+        EntryPoints:
+          - index.ts
+        External:
+          - '@aws-sdk/*'
+
+  EventPublisherFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/event-publisher
+      Handler: index.handler
+      Environment:
+        Variables:
+          ORDERS_TABLE_NAME: !Ref OrdersTable
+          CONFIG_TABLE_NAME: !Ref ConfigTable
+          APPSYNC_EVENTS_API_URL: !Sub 'https://${AppSyncEventsApi.Dns.Http}/event'
+          APPSYNC_EVENTS_API_KEY: !GetAtt AppSyncApiKey.ApiKey
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref OrdersTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref ConfigTable
+      Events:
+        OrderEvents:
+          Type: EventBridgeRule
+          Properties:
+            EventBusName: !Ref EventBus
+            Pattern:
+              source:
+                - coffee.ordering
+              detail-type:
+                - ORDER_PLACED
+                - ORDER_QUEUED
+                - ORDER_ACCEPTED
+                - ORDER_COMPLETED
+                - ORDER_CANCELLED
+                - ORDER_FAILED
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: true
+        EntryPoints:
+          - index.ts
+        External:
+          - '@aws-sdk/*'
+
+  GetExecutionHistoryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/get-execution-history
+      Handler: index.handler
+      Layers:
+        - !Ref DurableClientLayer
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: lambda:GetDurableExecutionHistory
+              Resource: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:coffee-orders'
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: true
+        EntryPoints:
+          - index.ts
+        External:
+          - '@aws-sdk/*'
+
+  HelloWorldDurableFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: hello-world-durable
+      CodeUri: src/hello-world-durable
+      Handler: index.lambdaHandler
+      Layers:
+        - !Ref DurableSdkLayer
+      DurableConfig:
+        ExecutionTimeout: 300
+        RetentionPeriodInDays: 7
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - lambda:CheckpointDurableExecution
+                - lambda:GetDurableExecutionState
+              Resource: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:hello-world-durable'
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: true
+        EntryPoints:
+          - index.ts
+        External:
+          - '@aws-sdk/*'
+          - aws-durable-execution-sdk-js
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway URL
+    Value: !Sub 'https://${CoffeeOrderingApi}.execute-api.${AWS::Region}.amazonaws.com/prod'
+  
+  EventBusName:
+    Description: EventBridge Event Bus Name
+    Value: !Ref EventBus
+  
+  AppSyncApiId:
+    Description: AppSync Events API ID
+    Value: !GetAtt AppSyncEventsApi.ApiId
+  
+  AppSyncApiKey:
+    Description: AppSync Events API Key
+    Value: !GetAtt AppSyncApiKey.ApiKey
+  
+  AppSyncHttpEndpoint:
+    Description: AppSync HTTP Endpoint (use this for VITE_APPSYNC_EVENTS_URL)
+    Value: !Sub 'https://${AppSyncEventsApi.Dns.Http}/event'
+  
+  AppSyncRealtimeEndpoint:
+    Description: AppSync Realtime WebSocket Endpoint
+    Value: !Sub 'wss://${AppSyncEventsApi.Dns.Realtime}/event/realtime'
+  
+  DurableFunctionName:
+    Description: Durable Function Name
+    Value: !Ref CoffeeOrdersFunction

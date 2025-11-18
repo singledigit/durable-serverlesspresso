@@ -1,0 +1,190 @@
+{
+  "DurableExecutionArn": "7cf16bd3-d1ec-426c-82f6-715b61bbae4a",
+  "StartInput": {
+    "AccountId": "123456789012",
+    "FunctionName": "function",
+    "FunctionQualifier": "$LATEST",
+    "ExecutionName": null,
+    "ExecutionTimeoutSeconds": 900,
+    "ExecutionRetentionPeriodDays": 7,
+    "InvocationId": "1f807ddc-8f12-48f0-a04d-d5f1dab28ad7",
+    "Input": "{\"body\": \"{\\n  \\\"orderId\\\": \\\"test-order-123\\\",\\n  \\\"attendeeId\\\": \\\"test-attendee-456\\\",\\n  \\\"eventId\\\": \\\"test-event-789\\\",\\n  \\\"orderDetails\\\": {\\n    \\\"drinkType\\\": \\\"latte\\\",\\n    \\\"size\\\": \\\"medium\\\",\\n    \\\"customizations\\\": [\\\"extra shot\\\", \\\"oat milk\\\"]\\n  },\\n  \\\"timestamp\\\": \\\"2025-11-18T14:00:00Z\\\"\\n}\", \"headers\": {\"Accept-Encoding\": \"gzip, deflate, br\", \"Connection\": \"close\", \"Content-Length\": \"262\", \"Content-Type\": \"application/json\", \"Host\": \"127.0.0.1:3000\", \"User-Agent\": \"vscode-restclient\", \"X-Amz-Invocation-Type\": \"Event\", \"X-Forwarded-Port\": \"3000\", \"X-Forwarded-Proto\": \"http\"}, \"httpMethod\": \"POST\", \"isBase64Encoded\": false, \"multiValueHeaders\": {\"Accept-Encoding\": [\"gzip, deflate, br\"], \"Connection\": [\"close\"], \"Content-Length\": [\"262\"], \"Content-Type\": [\"application/json\"], \"Host\": [\"127.0.0.1:3000\"], \"User-Agent\": [\"vscode-restclient\"], \"X-Amz-Invocation-Type\": [\"Event\"], \"X-Forwarded-Port\": [\"3000\"], \"X-Forwarded-Proto\": [\"http\"]}, \"multiValueQueryStringParameters\": null, \"path\": \"/order\", \"pathParameters\": null, \"queryStringParameters\": null, \"requestContext\": {\"accountId\": \"123456789012\", \"apiId\": \"1234567890\", \"domainName\": \"127.0.0.1:3000\", \"extendedRequestId\": null, \"httpMethod\": \"POST\", \"identity\": {\"accountId\": null, \"apiKey\": null, \"caller\": null, \"cognitoAuthenticationProvider\": null, \"cognitoAuthenticationType\": null, \"cognitoIdentityPoolId\": null, \"sourceIp\": \"127.0.0.1\", \"user\": null, \"userAgent\": \"Custom User Agent String\", \"userArn\": null}, \"path\": \"/order\", \"protocol\": \"HTTP/1.1\", \"requestId\": \"a1cf52e0-fb1a-429e-a761-9cb2ea3f977f\", \"requestTime\": \"18/Nov/2025:18:25:34 +0000\", \"requestTimeEpoch\": 1763490334006, \"resourceId\": \"123456\", \"resourcePath\": \"/order\", \"stage\": \"Prod\"}, \"resource\": \"/order\", \"stageVariables\": null}"
+  },
+  "Operations": [
+    {
+      "Id": "1f807ddc-8f12-48f0-a04d-d5f1dab28ad7",
+      "Type": "EXECUTION",
+      "Status": "FAILED",
+      "StartTimestamp": 1763490460.396202,
+      "EndTimestamp": 1763490463.047648,
+      "ExecutionDetails": {
+        "InputPayload": "\"{\\\"body\\\": \\\"{\\\\n  \\\\\\\"orderId\\\\\\\": \\\\\\\"test-order-123\\\\\\\",\\\\n  \\\\\\\"attendeeId\\\\\\\": \\\\\\\"test-attendee-456\\\\\\\",\\\\n  \\\\\\\"eventId\\\\\\\": \\\\\\\"test-event-789\\\\\\\",\\\\n  \\\\\\\"orderDetails\\\\\\\": {\\\\n    \\\\\\\"drinkType\\\\\\\": \\\\\\\"latte\\\\\\\",\\\\n    \\\\\\\"size\\\\\\\": \\\\\\\"medium\\\\\\\",\\\\n    \\\\\\\"customizations\\\\\\\": [\\\\\\\"extra shot\\\\\\\", \\\\\\\"oat milk\\\\\\\"]\\\\n  },\\\\n  \\\\\\\"timestamp\\\\\\\": \\\\\\\"2025-11-18T14:00:00Z\\\\\\\"\\\\n}\\\", \\\"headers\\\": {\\\"Accept-Encoding\\\": \\\"gzip, deflate, br\\\", \\\"Connection\\\": \\\"close\\\", \\\"Content-Length\\\": \\\"262\\\", \\\"Content-Type\\\": \\\"application/json\\\", \\\"Host\\\": \\\"127.0.0.1:3000\\\", \\\"User-Agent\\\": \\\"vscode-restclient\\\", \\\"X-Amz-Invocation-Type\\\": \\\"Event\\\", \\\"X-Forwarded-Port\\\": \\\"3000\\\", \\\"X-Forwarded-Proto\\\": \\\"http\\\"}, \\\"httpMethod\\\": \\\"POST\\\", \\\"isBase64Encoded\\\": false, \\\"multiValueHeaders\\\": {\\\"Accept-Encoding\\\": [\\\"gzip, deflate, br\\\"], \\\"Connection\\\": [\\\"close\\\"], \\\"Content-Length\\\": [\\\"262\\\"], \\\"Content-Type\\\": [\\\"application/json\\\"], \\\"Host\\\": [\\\"127.0.0.1:3000\\\"], \\\"User-Agent\\\": [\\\"vscode-restclient\\\"], \\\"X-Amz-Invocation-Type\\\": [\\\"Event\\\"], \\\"X-Forwarded-Port\\\": [\\\"3000\\\"], \\\"X-Forwarded-Proto\\\": [\\\"http\\\"]}, \\\"multiValueQueryStringParameters\\\": null, \\\"path\\\": \\\"/order\\\", \\\"pathParameters\\\": null, \\\"queryStringParameters\\\": null, \\\"requestContext\\\": {\\\"accountId\\\": \\\"123456789012\\\", \\\"apiId\\\": \\\"1234567890\\\", \\\"domainName\\\": \\\"127.0.0.1:3000\\\", \\\"extendedRequestId\\\": null, \\\"httpMethod\\\": \\\"POST\\\", \\\"identity\\\": {\\\"accountId\\\": null, \\\"apiKey\\\": null, \\\"caller\\\": null, \\\"cognitoAuthenticationProvider\\\": null, \\\"cognitoAuthenticationType\\\": null, \\\"cognitoIdentityPoolId\\\": null, \\\"sourceIp\\\": \\\"127.0.0.1\\\", \\\"user\\\": null, \\\"userAgent\\\": \\\"Custom User Agent String\\\", \\\"userArn\\\": null}, \\\"path\\\": \\\"/order\\\", \\\"protocol\\\": \\\"HTTP/1.1\\\", \\\"requestId\\\": \\\"a1cf52e0-fb1a-429e-a761-9cb2ea3f977f\\\", \\\"requestTime\\\": \\\"18/Nov/2025:18:25:34 +0000\\\", \\\"requestTimeEpoch\\\": 1763490334006, \\\"resourceId\\\": \\\"123456\\\", \\\"resourcePath\\\": \\\"/order\\\", \\\"stage\\\": \\\"Prod\\\"}, \\\"resource\\\": \\\"/order\\\", \\\"stageVariables\\\": null}\""
+      }
+    },
+    {
+      "Id": "c4ca4238a0b92382",
+      "Type": "STEP",
+      "Status": "FAILED",
+      "Name": "initialize-order",
+      "StartTimestamp": 1763490460.545905,
+      "EndTimestamp": 1763490463.040559,
+      "SubType": "Step",
+      "StepDetails": {
+        "Attempt": 3,
+        "Error": {
+          "ErrorMessage": "The security token included in the request is invalid.",
+          "ErrorType": "UnrecognizedClientException",
+          "StackTrace": [
+            "UnrecognizedClientException: The security token included in the request is invalid.",
+            "    at throwDefaultError (/var/runtime/node_modules/@aws-sdk/node_modules/@smithy/smithy-client/dist-cjs/index.js:422:20)",
+            "    at /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/smithy-client/dist-cjs/index.js:431:5",
+            "    at de_CommandError (/var/runtime/node_modules/@aws-sdk/client-dynamodb/dist-cjs/index.js:2359:14)",
+            "    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)",
+            "    at async /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/middleware-serde/dist-cjs/index.js:36:20",
+            "    at async /var/runtime/node_modules/@aws-sdk/lib-dynamodb/dist-cjs/index.js:173:30",
+            "    at async /opt/nodejs/node_modules/@smithy/core/dist-cjs/index.js:121:20",
+            "    at async /opt/nodejs/node_modules/@smithy/middleware-retry/dist-cjs/index.js:254:46",
+            "    at async /opt/nodejs/node_modules/@aws-sdk/middleware-logger/dist-cjs/index.js:5:26",
+            "    at async e.step.retryStrategy (/private/var/folders/79/cf6pfnk12p342pn1m0njdy500000gq/T/tmp1ayd6gni/index.ts:281:9)"
+          ]
+        }
+      }
+    }
+  ],
+  "Updates": [
+    {
+      "Id": "c4ca4238a0b92382",
+      "Type": "STEP",
+      "Action": "START",
+      "Name": "initialize-order",
+      "SubType": "Step"
+    },
+    {
+      "Id": "c4ca4238a0b92382",
+      "Type": "STEP",
+      "Action": "RETRY",
+      "Name": "initialize-order",
+      "SubType": "Step",
+      "Error": {
+        "ErrorMessage": "The security token included in the request is invalid.",
+        "ErrorType": "UnrecognizedClientException",
+        "StackTrace": [
+          "UnrecognizedClientException: The security token included in the request is invalid.",
+          "    at throwDefaultError (/var/runtime/node_modules/@aws-sdk/node_modules/@smithy/smithy-client/dist-cjs/index.js:422:20)",
+          "    at /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/smithy-client/dist-cjs/index.js:431:5",
+          "    at de_CommandError (/var/runtime/node_modules/@aws-sdk/client-dynamodb/dist-cjs/index.js:2359:14)",
+          "    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)",
+          "    at async /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/middleware-serde/dist-cjs/index.js:36:20",
+          "    at async /var/runtime/node_modules/@aws-sdk/lib-dynamodb/dist-cjs/index.js:173:30",
+          "    at async /opt/nodejs/node_modules/@smithy/core/dist-cjs/index.js:121:20",
+          "    at async /opt/nodejs/node_modules/@smithy/middleware-retry/dist-cjs/index.js:254:46",
+          "    at async /opt/nodejs/node_modules/@aws-sdk/middleware-logger/dist-cjs/index.js:5:26",
+          "    at async e.step.retryStrategy (/private/var/folders/79/cf6pfnk12p342pn1m0njdy500000gq/T/tmp1ayd6gni/index.ts:281:9)"
+        ]
+      },
+      "StepOptions": {
+        "NextAttemptDelaySeconds": 1
+      }
+    },
+    {
+      "Id": "c4ca4238a0b92382",
+      "Type": "STEP",
+      "Action": "START",
+      "Name": "initialize-order",
+      "SubType": "Step"
+    },
+    {
+      "Id": "c4ca4238a0b92382",
+      "Type": "STEP",
+      "Action": "RETRY",
+      "Name": "initialize-order",
+      "SubType": "Step",
+      "Error": {
+        "ErrorMessage": "The security token included in the request is invalid.",
+        "ErrorType": "UnrecognizedClientException",
+        "StackTrace": [
+          "UnrecognizedClientException: The security token included in the request is invalid.",
+          "    at throwDefaultError (/var/runtime/node_modules/@aws-sdk/node_modules/@smithy/smithy-client/dist-cjs/index.js:422:20)",
+          "    at /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/smithy-client/dist-cjs/index.js:431:5",
+          "    at de_CommandError (/var/runtime/node_modules/@aws-sdk/client-dynamodb/dist-cjs/index.js:2359:14)",
+          "    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)",
+          "    at async /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/middleware-serde/dist-cjs/index.js:36:20",
+          "    at async /var/runtime/node_modules/@aws-sdk/lib-dynamodb/dist-cjs/index.js:173:30",
+          "    at async /opt/nodejs/node_modules/@smithy/core/dist-cjs/index.js:121:20",
+          "    at async /opt/nodejs/node_modules/@smithy/middleware-retry/dist-cjs/index.js:254:46",
+          "    at async /opt/nodejs/node_modules/@aws-sdk/middleware-logger/dist-cjs/index.js:5:26",
+          "    at async e.step.retryStrategy (/private/var/folders/79/cf6pfnk12p342pn1m0njdy500000gq/T/tmp1ayd6gni/index.ts:281:9)"
+        ]
+      },
+      "StepOptions": {
+        "NextAttemptDelaySeconds": 1
+      }
+    },
+    {
+      "Id": "c4ca4238a0b92382",
+      "Type": "STEP",
+      "Action": "START",
+      "Name": "initialize-order",
+      "SubType": "Step"
+    },
+    {
+      "Id": "c4ca4238a0b92382",
+      "Type": "STEP",
+      "Action": "FAIL",
+      "Name": "initialize-order",
+      "SubType": "Step",
+      "Error": {
+        "ErrorMessage": "The security token included in the request is invalid.",
+        "ErrorType": "UnrecognizedClientException",
+        "StackTrace": [
+          "UnrecognizedClientException: The security token included in the request is invalid.",
+          "    at throwDefaultError (/var/runtime/node_modules/@aws-sdk/node_modules/@smithy/smithy-client/dist-cjs/index.js:422:20)",
+          "    at /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/smithy-client/dist-cjs/index.js:431:5",
+          "    at de_CommandError (/var/runtime/node_modules/@aws-sdk/client-dynamodb/dist-cjs/index.js:2359:14)",
+          "    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)",
+          "    at async /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/middleware-serde/dist-cjs/index.js:36:20",
+          "    at async /var/runtime/node_modules/@aws-sdk/lib-dynamodb/dist-cjs/index.js:173:30",
+          "    at async /opt/nodejs/node_modules/@smithy/core/dist-cjs/index.js:121:20",
+          "    at async /opt/nodejs/node_modules/@smithy/middleware-retry/dist-cjs/index.js:254:46",
+          "    at async /opt/nodejs/node_modules/@aws-sdk/middleware-logger/dist-cjs/index.js:5:26",
+          "    at async e.step.retryStrategy (/private/var/folders/79/cf6pfnk12p342pn1m0njdy500000gq/T/tmp1ayd6gni/index.ts:281:9)"
+        ]
+      }
+    }
+  ],
+  "UsedTokens": [
+    "eyJhcm4iOiI3Y2YxNmJkMy1kMWVjLTQyNmMtODJmNi03MTViNjFiYmFlNGEiLCJzZXEiOjJ9",
+    "eyJhcm4iOiI3Y2YxNmJkMy1kMWVjLTQyNmMtODJmNi03MTViNjFiYmFlNGEiLCJzZXEiOjZ9",
+    "eyJhcm4iOiI3Y2YxNmJkMy1kMWVjLTQyNmMtODJmNi03MTViNjFiYmFlNGEiLCJzZXEiOjV9",
+    "eyJhcm4iOiI3Y2YxNmJkMy1kMWVjLTQyNmMtODJmNi03MTViNjFiYmFlNGEiLCJzZXEiOjN9",
+    "eyJhcm4iOiI3Y2YxNmJkMy1kMWVjLTQyNmMtODJmNi03MTViNjFiYmFlNGEiLCJzZXEiOjExfQ==",
+    "eyJhcm4iOiI3Y2YxNmJkMy1kMWVjLTQyNmMtODJmNi03MTViNjFiYmFlNGEiLCJzZXEiOjl9",
+    "eyJhcm4iOiI3Y2YxNmJkMy1kMWVjLTQyNmMtODJmNi03MTViNjFiYmFlNGEiLCJzZXEiOjEwfQ==",
+    "eyJhcm4iOiI3Y2YxNmJkMy1kMWVjLTQyNmMtODJmNi03MTViNjFiYmFlNGEiLCJzZXEiOjd9",
+    "eyJhcm4iOiI3Y2YxNmJkMy1kMWVjLTQyNmMtODJmNi03MTViNjFiYmFlNGEiLCJzZXEiOjF9"
+  ],
+  "TokenSequence": 11,
+  "IsComplete": true,
+  "Result": {
+    "Status": "FAILED",
+    "Error": {
+      "ErrorMessage": "The security token included in the request is invalid.",
+      "ErrorType": "StepError",
+      "StackTrace": [
+        "UnrecognizedClientException: The security token included in the request is invalid.",
+        "    at throwDefaultError (/var/runtime/node_modules/@aws-sdk/node_modules/@smithy/smithy-client/dist-cjs/index.js:422:20)",
+        "    at /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/smithy-client/dist-cjs/index.js:431:5",
+        "    at de_CommandError (/var/runtime/node_modules/@aws-sdk/client-dynamodb/dist-cjs/index.js:2359:14)",
+        "    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)",
+        "    at async /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/middleware-serde/dist-cjs/index.js:36:20",
+        "    at async /var/runtime/node_modules/@aws-sdk/lib-dynamodb/dist-cjs/index.js:173:30",
+        "    at async /opt/nodejs/node_modules/@smithy/core/dist-cjs/index.js:121:20",
+        "    at async /opt/nodejs/node_modules/@smithy/middleware-retry/dist-cjs/index.js:254:46",
+        "    at async /opt/nodejs/node_modules/@aws-sdk/middleware-logger/dist-cjs/index.js:5:26",
+        "    at async e.step.retryStrategy (/private/var/folders/79/cf6pfnk12p342pn1m0njdy500000gq/T/tmp1ayd6gni/index.ts:281:9)"
+      ]
+    }
+  },
+  "ConsecutiveFailedInvocationAttempts": 0,
+  "CloseStatus": "FAILED"
+}

@@ -1,0 +1,10 @@
+{
+  "name": "get-execution-history",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.9.2"
+  }
+}
