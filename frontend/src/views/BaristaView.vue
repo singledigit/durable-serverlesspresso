@@ -647,6 +647,14 @@ async function handleAcceptOrder(orderId: string): Promise<void> {
   
   processingOrders.value.add(orderId);
   
+  // Optimistic update
+  const order = orderStore.pendingOrders.find(o => o.orderId === orderId);
+  if (order) {
+    order.status = 'ACCEPTED';
+    order.baristaId = baristaId.value;
+    order.timestamps.accepted = new Date().toISOString();
+  }
+  
   try {
     console.log(`[BaristaView] Accepting order ${orderId}...`);
     
@@ -655,13 +663,16 @@ async function handleAcceptOrder(orderId: string): Promise<void> {
     });
     
     console.log(`[BaristaView] Order ${orderId} accepted successfully`);
-    
-    // The order status will be updated via AppSync Events
-    // No need to manually update the store here
   } catch (error: any) {
     console.error(`[BaristaView] Failed to accept order ${orderId}:`, error);
     
-    // Show error notification
+    // Revert optimistic update
+    if (order) {
+      order.status = 'QUEUED';
+      delete order.baristaId;
+      delete order.timestamps.accepted;
+    }
+    
     alert(`Failed to accept order: ${error.message || 'Unknown error'}`);
   } finally {
     processingOrders.value.delete(orderId);
@@ -676,6 +687,14 @@ async function handleCompleteOrder(orderId: string): Promise<void> {
   
   processingOrders.value.add(orderId);
   
+  // Optimistic update
+  const order = orderStore.pendingOrders.find(o => o.orderId === orderId);
+  const originalStatus = order?.status;
+  if (order) {
+    order.status = 'COMPLETED';
+    order.timestamps.completed = new Date().toISOString();
+  }
+  
   try {
     console.log(`[BaristaView] Completing order ${orderId}...`);
     
@@ -685,12 +704,20 @@ async function handleCompleteOrder(orderId: string): Promise<void> {
     
     console.log(`[BaristaView] Order ${orderId} completed successfully`);
     
-    // The order status will be updated via AppSync Events
-    // No need to manually update the store here
+    // Move to history
+    if (order) {
+      orderStore.pendingOrders = orderStore.pendingOrders.filter(o => o.orderId !== orderId);
+      orderStore.orderHistory.unshift(order);
+    }
   } catch (error: any) {
     console.error(`[BaristaView] Failed to complete order ${orderId}:`, error);
     
-    // Show error notification
+    // Revert optimistic update
+    if (order && originalStatus) {
+      order.status = originalStatus;
+      delete order.timestamps.completed;
+    }
+    
     alert(`Failed to complete order: ${error.message || 'Unknown error'}`);
   } finally {
     processingOrders.value.delete(orderId);
@@ -712,6 +739,14 @@ async function handleCancelOrder(orderId: string): Promise<void> {
   
   processingOrders.value.add(orderId);
   
+  // Optimistic update
+  const order = orderStore.pendingOrders.find(o => o.orderId === orderId);
+  const originalStatus = order?.status;
+  if (order) {
+    order.status = 'CANCELLED';
+    order.timestamps.cancelled = new Date().toISOString();
+  }
+  
   try {
     console.log(`[BaristaView] Cancelling order ${orderId}...`);
     
@@ -722,12 +757,20 @@ async function handleCancelOrder(orderId: string): Promise<void> {
     
     console.log(`[BaristaView] Order ${orderId} cancelled successfully`);
     
-    // The order status will be updated via AppSync Events
-    // No need to manually update the store here
+    // Move to history
+    if (order) {
+      orderStore.pendingOrders = orderStore.pendingOrders.filter(o => o.orderId !== orderId);
+      orderStore.orderHistory.unshift(order);
+    }
   } catch (error: any) {
     console.error(`[BaristaView] Failed to cancel order ${orderId}:`, error);
     
-    // Show error notification
+    // Revert optimistic update
+    if (order && originalStatus) {
+      order.status = originalStatus;
+      delete order.timestamps.cancelled;
+    }
+    
     alert(`Failed to cancel order: ${error.message || 'Unknown error'}`);
   } finally {
     processingOrders.value.delete(orderId);
