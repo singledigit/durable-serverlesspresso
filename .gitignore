@@ -32,3 +32,4 @@ src/durable-sdk/.prettierrc
 src/durable-sdk/NOTICE
 src/durable-sdk/LICENSE
 locals.json
+.durable-executions-local
