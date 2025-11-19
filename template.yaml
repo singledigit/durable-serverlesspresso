@@ -505,6 +505,43 @@ Resources:
                     Access-Control-Allow-Origin:
                       schema:
                         type: string
+          /store/status:
+            post:
+              summary: Update store open/closed status
+              x-amazon-apigateway-integration:
+                type: aws
+                httpMethod: POST
+                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:events:path//'
+                credentials: !GetAtt ApiGatewayRole.Arn
+                passthroughBehavior: never
+                requestParameters:
+                  integration.request.header.X-Amz-Target: "'AWSEvents.PutEvents'"
+                  integration.request.header.Content-Type: "'application/x-amz-json-1.1'"
+                requestTemplates:
+                  application/json: !Sub |
+                    {
+                      "Entries": [{
+                        "Source": "coffee.ordering",
+                        "DetailType": "STORE_STATUS_CHANGED",
+                        "Detail": "{\"eventId\": \"$util.escapeJavaScript($input.path('$.eventId'))\", \"storeOpen\": $input.path('$.storeOpen'), \"timestamp\": \"$context.requestTime\"}",
+                        "EventBusName": "${EventBus}"
+                      }]
+                    }
+                responses:
+                  default:
+                    statusCode: 200
+                    responseTemplates:
+                      application/json: |
+                        {"success": true, "message": "Store status updated"}
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+              responses:
+                '200':
+                  description: Store status updated
+                  headers:
+                    Access-Control-Allow-Origin:
+                      schema:
+                        type: string
 
   ApiGatewayRole:
     Type: AWS::IAM::Role
