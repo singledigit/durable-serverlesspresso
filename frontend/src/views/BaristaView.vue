@@ -1,5 +1,5 @@
 <template>
-  <div class="barista-view min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+  <div class="barista-view min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col">
     <!-- Header matching AttendeeView style -->
     <header class="sticky top-0 z-20 text-white shadow-lg header-solid">
       <div class="container mx-auto px-4 py-2">
@@ -62,7 +62,7 @@
     </div>
 
     <!-- Main content area with sidebar layout -->
-    <div class="container mx-auto px-6 py-6">
+    <div class="container mx-auto px-6 py-6 flex-1">
       <div class="flex gap-6">
         <!-- Sidebar: Filters -->
         <aside class="w-80 flex-shrink-0">
