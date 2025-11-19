@@ -1,5 +1,5 @@
 <template>
-  <div class="attendee-view min-h-screen bg-gradient-to-br from-[--color-coffee-cream] to-[--color-coffee-latte]">
+  <div class="attendee-view min-h-screen bg-gradient-to-br from-[--color-coffee-cream] to-[--color-coffee-latte] flex flex-col">
     <!-- Mobile-optimized header -->
     <header class="sticky top-0 z-20 text-white shadow-lg safe-area-header header-solid">
       <div class="container mx-auto px-4 py-2">
@@ -23,7 +23,7 @@
     </header>
 
     <!-- Main content container with mobile-first responsive design -->
-    <main class="container mx-auto px-4 pt-8 pb-6 max-w-2xl relative z-0">
+    <main class="container mx-auto px-4 pt-8 pb-6 max-w-2xl relative z-0 flex-1">
       <!-- Loading State -->
       <LoadingSpinner v-if="isInitialLoading" text="Loading..." />
 
