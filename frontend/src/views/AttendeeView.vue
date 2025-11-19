@@ -24,21 +24,25 @@
 
     <!-- Main content container with mobile-first responsive design -->
     <main class="container mx-auto px-4 pt-8 pb-6 max-w-2xl relative z-0">
-      <!-- Real-time updates disabled message (development only) -->
-      <div 
-        v-if="!isAppSyncConfigured" 
-        class="card mb-4 bg-blue-50 border-2 border-blue-400"
-      >
-        <div class="flex items-center gap-3">
-          <div class="text-2xl">ℹ️</div>
-          <div>
-            <h3 class="font-semibold text-blue-800">Development Mode</h3>
-            <p class="text-sm text-blue-700">
-              Real-time updates are disabled. Configure AppSync Events in .env to enable.
-            </p>
+      <!-- Loading State -->
+      <LoadingSpinner v-if="isInitialLoading" text="Loading..." />
+
+      <template v-else>
+        <!-- Real-time updates disabled message (development only) -->
+        <div 
+          v-if="!isAppSyncConfigured" 
+          class="card mb-4 bg-blue-50 border-2 border-blue-400"
+        >
+          <div class="flex items-center gap-3">
+            <div class="text-2xl">ℹ️</div>
+            <div>
+              <h3 class="font-semibold text-blue-800">Development Mode</h3>
+              <p class="text-sm text-blue-700">
+                Real-time updates are disabled. Configure AppSync Events in .env to enable.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
 
       <!-- Store closed animation -->
       <div v-if="!eventStore.storeOpen" class="mb-6">
@@ -87,6 +91,7 @@
       <div class="mb-6">
         <OrderHistory />
       </div>
+      </template>
     </main>
 
     <!-- Mobile-friendly footer -->
@@ -130,6 +135,7 @@ import type { OrderEvent, StoreEvent } from '../types';
 import OrderForm from '../components/attendee/OrderForm.vue';
 import OrderStatus from '../components/attendee/OrderStatus.vue';
 import OrderHistory from '../components/attendee/OrderHistory.vue';
+import LoadingSpinner from '../components/shared/LoadingSpinner.vue';
 
 const orderStore = useOrderStore();
 const eventStore = useEventStore();
@@ -138,6 +144,7 @@ const eventStore = useEventStore();
 const attendeeId = ref<string>('');
 const connectionState = ref<ConnectionState>(ConnectionState.DISCONNECTED);
 const unsubscribeCallbacks = ref<Array<() => void>>([]);
+const isInitialLoading = ref<boolean>(true);
 
 // Notification state
 const notification = ref<{
@@ -461,37 +468,41 @@ function saveOrderHistoryToStorage(): void {
 onMounted(async () => {
   console.log('[AttendeeView] Component mounted');
   
-  // Generate or retrieve attendee ID
-  // In a real application, this would come from authentication
-  // For demo purposes, we'll generate a unique ID or use a stored one
-  const storedAttendeeId = localStorage.getItem('attendeeId');
-  if (storedAttendeeId) {
-    attendeeId.value = storedAttendeeId;
-  } else {
-    // Generate a simple attendee ID
-    attendeeId.value = `attendee-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    localStorage.setItem('attendeeId', attendeeId.value);
-  }
-  
-  console.log('[AttendeeView] Attendee ID:', attendeeId.value);
-  
-  // Load order history from localStorage
-  loadOrderHistoryFromStorage();
-  
-  // Load event configuration
-  const eventId = import.meta.env.VITE_EVENT_ID || 'reinvent-2025';
-  await eventStore.loadEventConfig(eventId);
-  
-  // Initialize AppSync Events connection
-  await initializeAppSyncEvents();
-  
-  // Subscribe to store status channel
-  subscribeToStoreChannel(eventId);
-  
-  // If there's already a current order, subscribe to its channel
-  if (orderStore.currentOrder) {
-    console.log('[AttendeeView] Found existing current order, subscribing to channel');
-    subscribeToOrderChannel(orderStore.currentOrder.orderId);
+  try {
+    // Generate or retrieve attendee ID
+    // In a real application, this would come from authentication
+    // For demo purposes, we'll generate a unique ID or use a stored one
+    const storedAttendeeId = localStorage.getItem('attendeeId');
+    if (storedAttendeeId) {
+      attendeeId.value = storedAttendeeId;
+    } else {
+      // Generate a simple attendee ID
+      attendeeId.value = `attendee-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      localStorage.setItem('attendeeId', attendeeId.value);
+    }
+    
+    console.log('[AttendeeView] Attendee ID:', attendeeId.value);
+    
+    // Load order history from localStorage
+    loadOrderHistoryFromStorage();
+    
+    // Load event configuration
+    const eventId = import.meta.env.VITE_EVENT_ID || 'reinvent-2025';
+    await eventStore.loadEventConfig(eventId);
+    
+    // Initialize AppSync Events connection
+    await initializeAppSyncEvents();
+    
+    // Subscribe to store status channel
+    subscribeToStoreChannel(eventId);
+    
+    // If there's already a current order, subscribe to its channel
+    if (orderStore.currentOrder) {
+      console.log('[AttendeeView] Found existing current order, subscribing to channel');
+      subscribeToOrderChannel(orderStore.currentOrder.orderId);
+    }
+  } finally {
+    isInitialLoading.value = false;
   }
 });
 

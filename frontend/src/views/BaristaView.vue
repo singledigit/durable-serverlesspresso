@@ -214,7 +214,7 @@
 
           <!-- Empty State -->
           <div 
-            v-if="filteredOrders.length === 0" 
+            v-if="!isInitialLoading && filteredOrders.length === 0" 
             class="card bg-white text-center py-16"
           >
             <div class="text-6xl mb-4">☕</div>
@@ -228,6 +228,14 @@
                   ? 'New orders will appear here automatically' 
                   : 'Completed and cancelled orders will appear here' }}
             </p>
+          </div>
+
+          <!-- Loading Skeleton -->
+          <div 
+            v-else-if="isInitialLoading"
+            class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4"
+          >
+            <SkeletonLoader v-for="i in 6" :key="i" type="order" />
           </div>
 
           <!-- Order Grid (3-4 columns) -->
@@ -302,13 +310,7 @@
                   class="flex-1 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <span v-if="!isProcessingOrder(order.orderId)">Accept</span>
-                  <span v-else class="flex items-center justify-center gap-2">
-                    <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Accepting...
-                  </span>
+                  <LoadingSpinner v-else size="16px" containerClass="py-0" />
                 </button>
                 <button
                   v-if="order.status === 'ACCEPTED' && activeTab === 'active'"
@@ -317,13 +319,7 @@
                   class="flex-1 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <span v-if="!isProcessingOrder(order.orderId)">Complete</span>
-                  <span v-else class="flex items-center justify-center gap-2">
-                    <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Completing...
-                  </span>
+                  <LoadingSpinner v-else size="16px" containerClass="py-0" />
                 </button>
                 <button
                   v-if="activeTab === 'active'"
@@ -332,13 +328,7 @@
                   class="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <span v-if="!isProcessingOrder(order.orderId)">Cancel</span>
-                  <span v-else class="flex items-center justify-center gap-2">
-                    <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Cancelling...
-                  </span>
+                  <LoadingSpinner v-else size="16px" containerClass="py-0" />
                 </button>
               </div>
             </div>
@@ -500,6 +490,8 @@ import { useEventStore } from '../stores/eventStore';
 import { appSyncEventsService, ConnectionState } from '../services/appSyncEvents';
 import { apiService } from '../services/api';
 import type { OrderEvent, DrinkType, DrinkSize, OrderStatus, Order } from '../types';
+import SkeletonLoader from '../components/shared/SkeletonLoader.vue';
+import LoadingSpinner from '../components/shared/LoadingSpinner.vue';
 
 const orderStore = useOrderStore();
 const eventStore = useEventStore();
@@ -510,6 +502,7 @@ const connectionState = ref<ConnectionState>(ConnectionState.DISCONNECTED);
 const unsubscribeCallbacks = ref<Array<() => void>>([]);
 const isTogglingStore = ref<boolean>(false);
 const processingOrders = ref<Set<string>>(new Set());
+const isInitialLoading = ref<boolean>(true);
 
 // Tab and modal state
 const activeTab = ref<'active' | 'history'>('active');
@@ -1024,35 +1017,39 @@ function cleanupAppSyncEvents(): void {
 onMounted(async () => {
   console.log('[BaristaView] Component mounted');
   
-  // Generate or retrieve barista ID
-  const storedBaristaId = localStorage.getItem('baristaId');
-  if (storedBaristaId) {
-    baristaId.value = storedBaristaId;
-  } else {
-    baristaId.value = `barista-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-    localStorage.setItem('baristaId', baristaId.value);
-  }
-  
-  console.log('[BaristaView] Barista ID:', baristaId.value);
-  
-  // Load event configuration
-  const eventId = import.meta.env.VITE_EVENT_ID || 'reinvent-2025';
-  await eventStore.loadEventConfig(eventId);
-  
-  // Load recent orders (will split into pending and history)
   try {
-    console.log('[BaristaView] Loading recent orders...');
-    await orderStore.loadRecentOrders(eventId, 30);
-    console.log(`[BaristaView] Loaded orders: ${orderStore.pendingOrders.length} pending, ${orderStore.orderHistory.length} history`);
-  } catch (error) {
-    console.error('[BaristaView] Failed to load recent orders:', error);
-    // Continue anyway - orders will be populated via AppSync Events
+    // Generate or retrieve barista ID
+    const storedBaristaId = localStorage.getItem('baristaId');
+    if (storedBaristaId) {
+      baristaId.value = storedBaristaId;
+    } else {
+      baristaId.value = `barista-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      localStorage.setItem('baristaId', baristaId.value);
+    }
+    
+    console.log('[BaristaView] Barista ID:', baristaId.value);
+    
+    // Load event configuration
+    const eventId = import.meta.env.VITE_EVENT_ID || 'reinvent-2025';
+    await eventStore.loadEventConfig(eventId);
+    
+    // Load recent orders (will split into pending and history)
+    try {
+      console.log('[BaristaView] Loading recent orders...');
+      await orderStore.loadRecentOrders(eventId, 30);
+      console.log(`[BaristaView] Loaded orders: ${orderStore.pendingOrders.length} pending, ${orderStore.orderHistory.length} history`);
+    } catch (error) {
+      console.error('[BaristaView] Failed to load recent orders:', error);
+      // Continue anyway - orders will be populated via AppSync Events
+    }
+    
+    // Initialize AppSync Events connection for real-time updates
+    await initializeAppSyncEvents();
+    
+    console.log('[BaristaView] Barista dashboard ready');
+  } finally {
+    isInitialLoading.value = false;
   }
-  
-  // Initialize AppSync Events connection for real-time updates
-  await initializeAppSyncEvents();
-  
-  console.log('[BaristaView] Barista dashboard ready');
 });
 
 /**
