@@ -63,9 +63,9 @@
 
     <!-- Main content area with sidebar layout -->
     <div class="container mx-auto px-6 py-6 flex-1">
-      <div class="flex gap-6">
-        <!-- Sidebar: Filters -->
-        <aside class="w-80 flex-shrink-0">
+      <div class="flex flex-col lg:flex-row gap-6">
+        <!-- Sidebar: Filters (second on mobile, first on desktop) -->
+        <aside class="w-full lg:w-80 flex-shrink-0 order-2 lg:order-1">
           <!-- Filters Card -->
           <div class="card bg-white">
             <h2 class="text-lg font-bold text-[--color-coffee-brown] mb-4 flex items-center gap-2">
@@ -146,8 +146,8 @@
           </div>
         </aside>
 
-        <!-- Main: Order Queue Grid -->
-        <main class="flex-1">
+        <!-- Main: Order Queue Grid (first on mobile, second on desktop) -->
+        <main class="flex-1 order-1 lg:order-2">
           <!-- Real-time updates disabled message (development only) -->
           <div 
             v-if="!isAppSyncConfigured" 
