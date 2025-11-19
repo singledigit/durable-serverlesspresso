@@ -7,14 +7,9 @@ Durable Functions in AWS SAM enable long-running, stateful workflows that can su
 ## Environment Configuration
 
 **AWS Profile and Region**:
-- Always use AWS profile: `private`
-- Default region: `us-east-1`
-- Disable pagination in AWS CLI commands with `--no-paginate`
-
-**SAM CLI**:
-- Use `samdev` instead of `sam` for all commands
-- Example: `samdev deploy` instead of `sam deploy`
-
+- Always prefix SAM and AWS CLI commands with `asp private &&` to ensure proper credentials
+- Example: `asp private && sam deploy`, `asp private && aws lambda invoke`
+- This prevents credential errors by setting the profile and region before each command
 
 ## Enabling Durable Functions
 
@@ -182,7 +177,7 @@ Resources:
 Deploy durable functions like any other SAM function:
 
 ```bash
-samdev deploy --stack-name <YourStackName> --guided --profile private --region us-east-1
+asp private && sam deploy --stack-name <YourStackName> --guided
 ```
 
 ### Local Invocation
@@ -190,7 +185,7 @@ samdev deploy --stack-name <YourStackName> --guided --profile private --region u
 Invoke durable functions locally with optional execution naming:
 
 ```bash
-samdev local invoke <FunctionName> --event <Event> --durable-execution-name <YourName>
+asp private && sam local invoke <FunctionName> --event <Event> --durable-execution-name <YourName>
 ```
 
 The `--durable-execution-name` parameter is optional and helps identify executions during testing.
@@ -201,29 +196,29 @@ The `--durable-execution-name` parameter is optional and helps identify executio
 
 ```bash
 # Get execution details
-samdev local execution get $EXECUTION_ARN
+asp private && sam local execution get $EXECUTION_ARN
 
 # View execution history (table format by default)
-samdev local execution history $EXECUTION_ARN
+asp private && sam local execution history $EXECUTION_ARN
 
 # View execution history as JSON
-samdev local execution history $EXECUTION_ARN --format json
+asp private && sam local execution history $EXECUTION_ARN --format json
 
 # Stop a running execution
-samdev local execution stop $EXECUTION_ARN
+asp private && sam local execution stop $EXECUTION_ARN
 ```
 
 #### Remote Testing
 
 ```bash
 # Get execution details from deployed function
-samdev remote execution get $EXECUTION_ARN --profile private --region us-east-1
+asp private && sam remote execution get $EXECUTION_ARN
 
 # View execution history
-samdev remote execution history $EXECUTION_ARN --profile private --region us-east-1
+asp private && sam remote execution history $EXECUTION_ARN
 
 # Stop a running execution
-samdev remote execution stop $EXECUTION_ARN --profile private --region us-east-1
+asp private && sam remote execution stop $EXECUTION_ARN
 ```
 
 ### Callback Management
@@ -232,16 +227,16 @@ For functions using `waitForCallback`, manage callbacks locally:
 
 ```bash
 # Send success callback
-samdev local callback succeed $CALLBACK_ID --result '{"data": "value"}'
+asp private && sam local callback succeed $CALLBACK_ID --result '{"data": "value"}'
 
 # Send heartbeat to keep execution alive
-samdev local callback heartbeat $CALLBACK_ID
+asp private && sam local callback heartbeat $CALLBACK_ID
 
 # Send failure callback
-samdev local callback fail $CALLBACK_ID --error '{"message": "Failed"}'
+asp private && sam local callback fail $CALLBACK_ID --error '{"message": "Failed"}'
 ```
 
-Use `samdev local callback <action> --help` to see all available parameters.
+Use `asp private && sam local callback <action> --help` to see all available parameters.
 
 **Note**: Remote callback commands are not yet available but will be added in future releases.
 
@@ -272,7 +267,7 @@ When implementing durable functions:
 1. **Use the SDK wrapper**: Wrap your handler with `withDurableExecution`
 2. **Checkpoint strategically**: Use `ctx.step()` for non-deterministic operations
 3. **Handle errors**: Implement proper error handling and retry logic
-4. **Test locally first**: Use `samdev local invoke` before deploying
+4. **Test locally first**: Use `sam local invoke` before deploying
 
 Example structure:
 ```typescript
@@ -300,10 +295,10 @@ export const lambdaHandler = withDurableExecution(handler);
 
 ## Testing Strategy
 
-1. **Local testing**: Use `samdev local invoke` with test events
-2. **Execution tracking**: Use `samdev local execution history` to debug
-3. **Callback testing**: Test callback scenarios with `samdev local callback` commands
-4. **Remote validation**: Deploy to dev environment and test with `samdev remote execution` commands
+1. **Local testing**: Use `sam local invoke` with test events
+2. **Execution tracking**: Use `sam local execution history` to debug
+3. **Callback testing**: Test callback scenarios with `sam local callback` commands
+4. **Remote validation**: Deploy to dev environment and test with `sam remote execution` commands
 
 ## Common Patterns
 
