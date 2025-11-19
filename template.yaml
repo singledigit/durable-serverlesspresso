@@ -714,36 +714,6 @@ Resources:
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${CoffeeOrderingApi}/*'
 
-  HelloWorldDurableFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      FunctionName: hello-world-durable
-      CodeUri: src/hello-world-durable
-      Handler: index.lambdaHandler
-      Layers:
-        - !Ref DurableSdkLayer
-      DurableConfig:
-        ExecutionTimeout: 300
-        RetentionPeriodInDays: 7
-      Policies:
-        - Statement:
-            - Effect: Allow
-              Action:
-                - lambda:CheckpointDurableExecution
-                - lambda:GetDurableExecutionState
-              Resource: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:hello-world-durable'
-    Metadata:
-      BuildMethod: esbuild
-      BuildProperties:
-        Minify: true
-        Target: es2020
-        Sourcemap: true
-        EntryPoints:
-          - index.ts
-        External:
-          - '@aws-sdk/*'
-          - aws-durable-execution-sdk-js
-
 Outputs:
   ApiUrl:
     Description: API Gateway URL
