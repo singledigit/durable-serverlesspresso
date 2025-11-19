@@ -613,6 +613,8 @@ Resources:
           ORDERS_TABLE_NAME: !Ref OrdersTable
           CONFIG_TABLE_NAME: !Ref ConfigTable
           EVENT_BUS_NAME: !Ref EventBus
+          APPSYNC_EVENTS_API_URL: !Sub 'https://${AppSyncEventsApi.Dns.Http}/event'
+          APPSYNC_EVENTS_API_KEY: !GetAtt AppSyncApiKey.ApiKey
       AutoPublishAlias: live
     Metadata:
       BuildMethod: esbuild

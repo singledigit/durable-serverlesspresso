@@ -4,7 +4,7 @@ import { DynamoDBDocumentClient, PutCommand, UpdateCommand, GetCommand, QueryCom
 import { EventBridgeClient, PutEventsCommand } from "@aws-sdk/client-eventbridge";
 import { randomUUID } from "crypto";
 import { OrderRecord, EventConfig, CancelledBy } from "./types";
-import { parseCallbackResult, getTimestamp } from "./utils";
+import { parseCallbackResult, getTimestamp, publishToAppSync } from "./utils";
 
 // ========== AWS CLIENTS ==========
 const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION || "eu-south-1" });
@@ -15,6 +15,8 @@ const eventBridgeClient = new EventBridgeClient({ region: process.env.AWS_REGION
 const ORDERS_TABLE_NAME = process.env.ORDERS_TABLE_NAME!;
 const CONFIG_TABLE_NAME = process.env.CONFIG_TABLE_NAME!;
 const EVENT_BUS_NAME = process.env.EVENT_BUS_NAME!;
+const APPSYNC_EVENTS_API_URL = process.env.APPSYNC_EVENTS_API_URL!;
+const APPSYNC_EVENTS_API_KEY = process.env.APPSYNC_EVENTS_API_KEY!;
 
 // ========== CONSTANTS ==========
 const TIMEOUTS = {
@@ -81,23 +83,48 @@ interface CompletionResult {
 // ========== WORKFLOW-SPECIFIC HELPER FUNCTIONS ==========
 
 /**
- * Publish event to EventBridge
+ * Update DynamoDB status and publish to AppSync
  */
-async function publishEvent(
-  detailType: string,
-  detail: Record<string, any>
+async function updateStatusAndPublish(
+  orderId: string,
+  status: string,
+  eventType: string,
+  detail: Record<string, any>,
+  timestamp: string,
+  updateExpression?: string,
+  expressionValues?: Record<string, any>
 ): Promise<void> {
-  await eventBridgeClient.send(
-    new PutEventsCommand({
-      Entries: [
-        {
-          Source: EVENT_SOURCE,
-          DetailType: detailType,
-          Detail: JSON.stringify(detail),
-          EventBusName: EVENT_BUS_NAME,
-        },
-      ],
+  // Update DynamoDB
+  const baseUpdate = `SET #status = :status, updatedAt = :timestamp`;
+  const finalUpdate = updateExpression ? `${baseUpdate}, ${updateExpression}` : baseUpdate;
+  
+  await docClient.send(
+    new UpdateCommand({
+      TableName: ORDERS_TABLE_NAME,
+      Key: { orderId },
+      UpdateExpression: finalUpdate,
+      ExpressionAttributeNames: {
+        "#status": "status",
+        ...(updateExpression?.includes("#timestamps") ? { "#timestamps": "timestamps" } : {}),
+      },
+      ExpressionAttributeValues: {
+        ":status": status,
+        ":timestamp": timestamp,
+        ...expressionValues,
+      },
     })
+  );
+
+  // Publish to AppSync for real-time updates
+  const eventData = { type: eventType, orderId, timestamp, data: detail };
+  const channels = [
+    `coffee-ordering/orders/${orderId}`,
+    ...(detail.attendeeId ? [`coffee-ordering/attendee/${detail.attendeeId}`] : []),
+    ...(status === "QUEUED" ? ["coffee-ordering/barista/queue"] : []),
+  ];
+
+  await Promise.all(
+    channels.map((channel) => publishToAppSync(channel, eventData, APPSYNC_EVENTS_API_URL, APPSYNC_EVENTS_API_KEY))
   );
 }
 
@@ -108,19 +135,30 @@ async function handleCancellation(
   context: DurableContext,
   orderData: OrderRecord,
   reason: string,
-  cancelledBy: CancelledBy
+  cancelledBy: CancelledBy,
+  timestamp: string
 ): Promise<CancellationResult> {
   await context.step(
     "handle-cancellation",
     async () => {
-      // Publish cancellation event - event-publisher will update DynamoDB
-      await publishEvent("ORDER_CANCELLED", {
-        orderId: orderData.orderId,
-        attendeeId: orderData.attendeeId,
-        reason,
-        cancelledBy,
-        timestamp: getTimestamp(),
-      });
+      await updateStatusAndPublish(
+        orderData.orderId,
+        "CANCELLED",
+        "ORDER_CANCELLED",
+        {
+          attendeeId: orderData.attendeeId,
+          reason,
+          cancelledBy,
+        },
+        timestamp,
+        "currentPhase = :phase, activeCallbackId = :null, cancellationReason = :reason, cancelledBy = :cancelledBy, #timestamps.cancelled = :timestamp",
+        {
+          ":phase": "CANCELLED",
+          ":null": null,
+          ":reason": reason,
+          ":cancelledBy": cancelledBy,
+        }
+      );
 
       context.logger.info("Order cancelled", {
         orderId: orderData.orderId,
@@ -187,12 +225,16 @@ export const handler = withDurableExecution(
     
     context.logger.info("Starting coffee order orchestration", { event });
 
+    // ========== STEP 0: GENERATE WORKFLOW TIMESTAMP ==========
+    const workflowTimestamp = await context.step("generate-timestamp", async () => {
+      return getTimestamp();
+    });
+
     // ========== STEP 1: INITIALIZE ORDER ==========
     const orderData = await context.step(
       "initialize-order",
       async () => {
         const orderId = event.orderId || randomUUID();
-        const timestamp = getTimestamp();
 
         const orderRecord: OrderRecord = {
           orderId,
@@ -201,9 +243,9 @@ export const handler = withDurableExecution(
           status: "PENDING",
           orderDetails: event.orderDetails,
           executionArn: "", // Looked up dynamically via orderId when needed
-          timestamps: { placed: timestamp },
-          createdAt: timestamp,
-          updatedAt: timestamp,
+          timestamps: { placed: workflowTimestamp },
+          createdAt: workflowTimestamp,
+          updatedAt: workflowTimestamp,
         };
 
         await docClient.send(
@@ -223,15 +265,32 @@ export const handler = withDurableExecution(
     await context.step(
       "publish-order-placed",
       async () => {
-        await publishEvent("ORDER_PLACED", {
-          orderId: orderData.orderId,
-          attendeeId: orderData.attendeeId,
-          eventId: orderData.eventId,
-          orderDetails: orderData.orderDetails,
-          timestamp: getTimestamp(),
-        });
+        const eventData = { 
+          type: "ORDER_PLACED", 
+          orderId: orderData.orderId, 
+          timestamp: workflowTimestamp, 
+          data: {
+            attendeeId: orderData.attendeeId,
+            eventId: orderData.eventId,
+            orderDetails: orderData.orderDetails,
+          }
+        };
 
-        context.logger.info("ORDER_PLACED event published", { orderId: orderData.orderId });
+        // Publish to AppSync for real-time updates
+        await Promise.all([
+          publishToAppSync(
+            `coffee-ordering/orders/${orderData.orderId}`,
+            eventData,
+            APPSYNC_EVENTS_API_URL,
+            APPSYNC_EVENTS_API_KEY
+          ),
+          publishToAppSync(
+            `coffee-ordering/attendee/${orderData.attendeeId}`,
+            eventData,
+            APPSYNC_EVENTS_API_URL,
+            APPSYNC_EVENTS_API_KEY
+          ),
+        ]);
       },
       { retryStrategy }
     );
@@ -360,25 +419,28 @@ export const handler = withDurableExecution(
         errors: validationErrors,
       });
 
-      return await handleCancellation(context, orderData, errorMessage, "system");
+      return await handleCancellation(context, orderData, errorMessage, "system", workflowTimestamp);
     }
 
     context.logger.info("All validations passed", { orderId: orderData.orderId });
 
-    // ========== STEP 4: PUBLISH ORDER_QUEUED EVENT ==========
+    // ========== STEP 4: UPDATE STATUS TO QUEUED ==========
     await context.step(
-      "publish-order-queued",
+      "update-status-queued",
       async () => {
-        // Publish event - event-publisher will update DynamoDB
-        await publishEvent("ORDER_QUEUED", {
-          orderId: orderData.orderId,
-          attendeeId: orderData.attendeeId,
-          eventId: orderData.eventId,
-          orderDetails: orderData.orderDetails,
-          timestamp: getTimestamp(),
-        });
-
-        context.logger.info("ORDER_QUEUED event published", { orderId: orderData.orderId });
+        await updateStatusAndPublish(
+          orderData.orderId,
+          "QUEUED",
+          "ORDER_QUEUED",
+          {
+            attendeeId: orderData.attendeeId,
+            eventId: orderData.eventId,
+            orderDetails: orderData.orderDetails,
+          },
+          workflowTimestamp,
+          "#timestamps.queued = :timestamp",
+          {}
+        );
       },
       { retryStrategy }
     );
@@ -412,7 +474,7 @@ export const handler = withDurableExecution(
         error: error.message,
       });
 
-      return await handleCancellation(context, orderData, CANCELLATION_REASONS.ACCEPTANCE_TIMEOUT, "system");
+      return await handleCancellation(context, orderData, CANCELLATION_REASONS.ACCEPTANCE_TIMEOUT, "system", workflowTimestamp);
     }
 
     // Parse and validate acceptance result
@@ -428,7 +490,8 @@ export const handler = withDurableExecution(
         context,
         orderData,
         acceptanceResult.reason || CANCELLATION_REASONS.USER_CANCELLED,
-        (acceptanceResult.cancelledBy as CancelledBy) || "unknown"
+        (acceptanceResult.cancelledBy as CancelledBy) || "unknown",
+        workflowTimestamp
       );
     }
 
@@ -437,19 +500,24 @@ export const handler = withDurableExecution(
       baristaId: acceptanceResult.baristaId,
     });
 
-    // ========== STEP 6: PUBLISH ORDER_ACCEPTED EVENT ==========
+    // ========== STEP 6: UPDATE STATUS TO ACCEPTED ==========
     await context.step(
-      "publish-order-accepted",
+      "update-status-accepted",
       async () => {
-        // Publish event - event-publisher will update DynamoDB
-        await publishEvent("ORDER_ACCEPTED", {
-          orderId: orderData.orderId,
-          attendeeId: orderData.attendeeId,
-          baristaId: acceptanceResult.baristaId,
-          timestamp: getTimestamp(),
-        });
-
-        context.logger.info("ORDER_ACCEPTED event published", { orderId: orderData.orderId });
+        await updateStatusAndPublish(
+          orderData.orderId,
+          "ACCEPTED",
+          "ORDER_ACCEPTED",
+          {
+            attendeeId: orderData.attendeeId,
+            baristaId: acceptanceResult.baristaId,
+          },
+          workflowTimestamp,
+          "#timestamps.accepted = :timestamp, baristaId = :baristaId",
+          {
+            ":baristaId": acceptanceResult.baristaId || "unknown",
+          }
+        );
       },
       { retryStrategy }
     );
@@ -483,7 +551,7 @@ export const handler = withDurableExecution(
         error: error.message,
       });
 
-      return await handleCancellation(context, orderData, CANCELLATION_REASONS.COMPLETION_TIMEOUT, "system");
+      return await handleCancellation(context, orderData, CANCELLATION_REASONS.COMPLETION_TIMEOUT, "system", workflowTimestamp);
     }
 
     // Parse and validate completion result
@@ -499,7 +567,8 @@ export const handler = withDurableExecution(
         context,
         orderData,
         completionResult.reason || CANCELLATION_REASONS.USER_CANCELLED,
-        (completionResult.cancelledBy as CancelledBy) || "unknown"
+        (completionResult.cancelledBy as CancelledBy) || "unknown",
+        workflowTimestamp
       );
     }
 
@@ -508,19 +577,25 @@ export const handler = withDurableExecution(
       baristaId: completionResult.baristaId,
     });
 
-    // ========== STEP 8: RECORD ORDER COMPLETION ==========
+    // ========== STEP 8: UPDATE STATUS TO COMPLETED ==========
     await context.step(
-      "record-order-completion",
+      "update-status-completed",
       async () => {
-        // Publish event - event-publisher will update DynamoDB
-        await publishEvent("ORDER_COMPLETED", {
-          orderId: orderData.orderId,
-          attendeeId: orderData.attendeeId,
-          baristaId: completionResult.baristaId,
-          timestamp: getTimestamp(),
-        });
-
-        context.logger.info("ORDER_COMPLETED event published", { orderId: orderData.orderId });
+        await updateStatusAndPublish(
+          orderData.orderId,
+          "COMPLETED",
+          "ORDER_COMPLETED",
+          {
+            attendeeId: orderData.attendeeId,
+            baristaId: completionResult.baristaId,
+          },
+          workflowTimestamp,
+          "currentPhase = :phase, activeCallbackId = :null, #timestamps.completed = :timestamp",
+          {
+            ":phase": "COMPLETED",
+            ":null": null,
+          }
+        );
       },
       { retryStrategy }
     );

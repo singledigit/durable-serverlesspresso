@@ -36,3 +36,30 @@ export function validateEnvVars(vars: string[]): void {
     throw new Error(`Missing required environment variables: ${missing.join(", ")}`);
   }
 }
+
+/**
+ * Publish event to AppSync Events for real-time updates
+ */
+export async function publishToAppSync(
+  channel: string,
+  eventData: any,
+  apiUrl: string,
+  apiKey: string
+): Promise<void> {
+  const response = await fetch(apiUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+    },
+    body: JSON.stringify({
+      channel,
+      events: [JSON.stringify(eventData)],
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`AppSync publish failed: ${response.status} - ${errorText}`);
+  }
+}
