@@ -23,10 +23,17 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     // Get execution ARN or orderId from path/query parameters
     let executionArn = event.pathParameters?.executionArn;
     const orderId = event.queryStringParameters?.orderId;
+    
+    console.log("Initial params:", { executionArn, orderId });
 
-    // If orderId provided, list executions to find the ARN
-    // Check if executionArn is a placeholder (like "_") or not a valid ARN
-    if (orderId && (!executionArn || !executionArn.startsWith('arn:'))) {
+    // If executionArn is a placeholder or invalid, treat it as not provided
+    if (executionArn && (executionArn === '_' || !executionArn.startsWith('arn:'))) {
+      console.log("Ignoring invalid executionArn:", executionArn);
+      executionArn = undefined;
+    }
+
+    // If orderId provided and no valid executionArn, list executions to find the ARN
+    if (orderId && !executionArn) {
       console.log("Looking up execution ARN for orderId:", orderId);
       console.log("Using function name:", COFFEE_ORDERS_FUNCTION);
       
@@ -98,14 +105,11 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       };
     }
 
-    // Decode the execution ARN (it will be URL encoded) - but only if it looks like an ARN
-    const decodedArn = executionArn.startsWith('arn:') ? decodeURIComponent(executionArn) : executionArn;
-
-    console.log("Fetching execution history for:", decodedArn);
+    console.log("Fetching execution history for:", executionArn);
 
     // Fetch execution history using the SDK
     const command = new GetDurableExecutionHistoryCommand({
-      DurableExecutionArn: decodedArn,
+      DurableExecutionArn: executionArn,
       IncludeExecutionData: true,
     });
 
@@ -120,7 +124,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         "Access-Control-Allow-Origin": "*",
       },
       body: JSON.stringify({
-        executionArn: decodedArn,
+        executionArn,
         history: response,
       }),
     };

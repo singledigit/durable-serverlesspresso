@@ -718,11 +718,16 @@ Resources:
       Handler: index.handler
       Layers:
         - !Ref DurableClientLayer
+      Environment:
+        Variables:
+          COFFEE_ORDERS_FUNCTION: !Ref CoffeeOrdersFunction
       Policies:
         - Statement:
             - Effect: Allow
-              Action: lambda:GetDurableExecutionHistory
-              Resource: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:coffee-orders'
+              Action:
+                - lambda:GetDurableExecutionHistory
+                - lambda:ListDurableExecutionsByFunction
+              Resource: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${CoffeeOrdersFunction}*'
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -733,6 +738,14 @@ Resources:
           - index.ts
         External:
           - '@aws-sdk/*'
+
+  GetExecutionHistoryFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref GetExecutionHistoryFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${CoffeeOrderingApi}/*'
 
   HelloWorldDurableFunction:
     Type: AWS::Serverless::Function

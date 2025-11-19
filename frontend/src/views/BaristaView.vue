@@ -755,8 +755,8 @@ async function viewExecutionHistory(order: Order): Promise<void> {
       
       // Use orderId to look up the execution
       // Use a dummy path parameter and pass orderId as query param
-      const apiUrl = import.meta.env.VITE_API_URL || 'https://nmgu9oa263.execute-api.eu-south-1.amazonaws.com/prod/';
-      const url = `${apiUrl}execution-history/_?orderId=${encodeURIComponent(order.orderId)}`;
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://lpgiuqktxd.execute-api.us-east-1.amazonaws.com/prod';
+      const url = `${apiUrl}/execution/history?orderId=${encodeURIComponent(order.orderId)}`;
       
       const response = await fetch(url);
       
