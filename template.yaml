@@ -546,53 +546,6 @@ Resources:
                 Resource: !GetAtt EventBus.Arn
 
   # ========== IAM ROLES ==========
-  
-  DurableFunctionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-            Action: sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-      Policies:
-        - PolicyName: DurableExecutionPolicy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - lambda:CheckpointDurableExecution
-                  - lambda:GetDurableExecutionState
-                Resource: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:sev2-CoffeeOrdersFunction-*'
-        - PolicyName: DynamoDBAccess
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - dynamodb:GetItem
-                  - dynamodb:Query
-                Resource:
-                  - !GetAtt ConfigTable.Arn
-                  - !GetAtt OrdersTable.Arn
-                  - !Sub '${OrdersTable.Arn}/index/AttendeeEventIndex'
-              - Effect: Allow
-                Action:
-                  - dynamodb:PutItem
-                  - dynamodb:UpdateItem
-                Resource: !GetAtt OrdersTable.Arn
-        - PolicyName: EventBridgeAccess
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action: events:PutEvents
-                Resource: !GetAtt EventBus.Arn
 
   # ========== LAMBDA FUNCTIONS ==========
   
@@ -601,7 +554,6 @@ Resources:
     Properties:
       CodeUri: src/coffee-orders
       Handler: index.handler
-      Role: !GetAtt DurableFunctionRole.Arn
       Timeout: 60
       Layers:
         - !Ref DurableSdkLayer
@@ -615,6 +567,19 @@ Resources:
           EVENT_BUS_NAME: !Ref EventBus
           APPSYNC_EVENTS_API_URL: !Sub 'https://${AppSyncEventsApi.Dns.Http}/event'
           APPSYNC_EVENTS_API_KEY: !GetAtt AppSyncApiKey.ApiKey
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref ConfigTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref OrdersTable
+        - DynamoDBWritePolicy:
+            TableName: !Ref OrdersTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - lambda:CheckpointDurableExecution
+                - lambda:GetDurableExecutionState
+              Resource: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-CoffeeOrdersFunction-*'
       AutoPublishAlias: live
     Metadata:
       BuildMethod: esbuild

@@ -261,41 +261,7 @@ export const handler = withDurableExecution(
       { retryStrategy }
     );
 
-    // ========== STEP 2: PUBLISH ORDER_PLACED EVENT ==========
-    await context.step(
-      "publish-order-placed",
-      async () => {
-        const eventData = { 
-          type: "ORDER_PLACED", 
-          orderId: orderData.orderId, 
-          timestamp: workflowTimestamp, 
-          data: {
-            attendeeId: orderData.attendeeId,
-            eventId: orderData.eventId,
-            orderDetails: orderData.orderDetails,
-          }
-        };
-
-        // Publish to AppSync for real-time updates
-        await Promise.all([
-          publishToAppSync(
-            `coffee-ordering/orders/${orderData.orderId}`,
-            eventData,
-            APPSYNC_EVENTS_API_URL,
-            APPSYNC_EVENTS_API_KEY
-          ),
-          publishToAppSync(
-            `coffee-ordering/attendee/${orderData.attendeeId}`,
-            eventData,
-            APPSYNC_EVENTS_API_URL,
-            APPSYNC_EVENTS_API_KEY
-          ),
-        ]);
-      },
-      { retryStrategy }
-    );
-
-    // ========== STEP 3: PARALLEL VALIDATION DATA FETCH ==========
+    // ========== STEP 2: PARALLEL VALIDATION DATA FETCH ==========
     context.logger.info("Starting parallel validation", { 
       orderId: orderData.orderId,
       attendeeId: event.attendeeId,
@@ -423,6 +389,39 @@ export const handler = withDurableExecution(
     }
 
     context.logger.info("All validations passed", { orderId: orderData.orderId });
+
+    // ========== STEP 3: PUBLISH ORDER_PLACED EVENT ==========
+    await context.step(
+      "publish-order-placed",
+      async () => {
+        const eventData = { 
+          type: "ORDER_PLACED", 
+          orderId: orderData.orderId, 
+          timestamp: workflowTimestamp, 
+          data: {
+            attendeeId: orderData.attendeeId,
+            eventId: orderData.eventId,
+            orderDetails: orderData.orderDetails,
+          }
+        };
+
+        await Promise.all([
+          publishToAppSync(
+            `coffee-ordering/orders/${orderData.orderId}`,
+            eventData,
+            APPSYNC_EVENTS_API_URL,
+            APPSYNC_EVENTS_API_KEY
+          ),
+          publishToAppSync(
+            `coffee-ordering/attendee/${orderData.attendeeId}`,
+            eventData,
+            APPSYNC_EVENTS_API_URL,
+            APPSYNC_EVENTS_API_KEY
+          ),
+        ]);
+      },
+      { retryStrategy }
+    );
 
     // ========== STEP 4: UPDATE STATUS TO QUEUED ==========
     await context.step(
