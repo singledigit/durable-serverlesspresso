@@ -119,6 +119,7 @@ Resources:
       EventConfig:
         AuthProviders:
           - AuthType: API_KEY
+          - AuthType: AWS_IAM
         ConnectionAuthModes:
           - AuthType: API_KEY
         DefaultPublishAuthModes:
@@ -131,12 +132,17 @@ Resources:
     Properties:
       ApiId: !GetAtt AppSyncEventsApi.ApiId
       Description: API Key for Coffee Ordering Events API
+      Expires: 1795299562
 
   AppSyncChannelNamespace:
     Type: AWS::AppSync::ChannelNamespace
     Properties:
       ApiId: !GetAtt AppSyncEventsApi.ApiId
       Name: coffee-ordering
+      PublishAuthModes:
+        - AuthType: API_KEY
+      SubscribeAuthModes:
+        - AuthType: API_KEY
 
   # ========== API GATEWAY ==========
   
@@ -617,6 +623,10 @@ Resources:
                 - lambda:CheckpointDurableExecution
                 - lambda:GetDurableExecutionState
               Resource: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-CoffeeOrdersFunction-*'
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !Sub 'arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/${EventBus}'
       AutoPublishAlias: live
     Metadata:
       BuildMethod: esbuild

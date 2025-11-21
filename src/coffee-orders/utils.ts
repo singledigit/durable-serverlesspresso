@@ -1,7 +1,3 @@
-/**
- * Generic utility functions that could be reused across multiple Lambda functions
- */
-
 import { DurableContext } from "aws-durable-execution-sdk-js";
 
 /**
@@ -38,7 +34,7 @@ export function validateEnvVars(vars: string[]): void {
 }
 
 /**
- * Publish event to AppSync Events for real-time updates
+ * Publish event to AppSync Events for real-time updates using HTTP
  */
 export async function publishToAppSync(
   channel: string,
@@ -46,20 +42,29 @@ export async function publishToAppSync(
   apiUrl: string,
   apiKey: string
 ): Promise<void> {
-  const response = await fetch(apiUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-    },
-    body: JSON.stringify({
-      channel,
-      events: [JSON.stringify(eventData)],
-    }),
-  });
+  if (!apiUrl) {
+    console.log(`[LOCAL] Skipping AppSync publish to ${channel}`);
+    return;
+  }
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`AppSync publish failed: ${response.status} - ${errorText}`);
+  try {
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+      },
+      body: JSON.stringify({
+        channel,
+        events: [JSON.stringify(eventData)],
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`AppSync publish failed: ${response.status} - ${errorText}`);
+    }
+  } catch (error) {
+    console.error(`AppSync publish error:`, error);
   }
 }

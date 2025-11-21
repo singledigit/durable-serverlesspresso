@@ -345,7 +345,7 @@ export const handler = withDurableExecution(
 
     const results = validationResults.getResults();
     const eventConfig = results[0] as EventConfig | undefined;
-    const previousOrders = results[1] as any[];
+    const previousOrders = (results[1] as any[]) || [];
 
     context.logger.info("Validation data retrieved", {
       eventConfig,
