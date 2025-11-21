@@ -123,7 +123,7 @@ Resources:
         ConnectionAuthModes:
           - AuthType: API_KEY
         DefaultPublishAuthModes:
-          - AuthType: API_KEY
+          - AuthType: AWS_IAM
         DefaultSubscribeAuthModes:
           - AuthType: API_KEY
 
@@ -140,7 +140,7 @@ Resources:
       ApiId: !GetAtt AppSyncEventsApi.ApiId
       Name: coffee-ordering
       PublishAuthModes:
-        - AuthType: API_KEY
+        - AuthType: AWS_IAM
       SubscribeAuthModes:
         - AuthType: API_KEY
 
@@ -608,8 +608,7 @@ Resources:
           ORDERS_TABLE_NAME: !Ref OrdersTable
           CONFIG_TABLE_NAME: !Ref ConfigTable
           EVENT_BUS_NAME: !Ref EventBus
-          APPSYNC_EVENTS_API_URL: !Sub 'https://${AppSyncEventsApi.Dns.Http}/event'
-          APPSYNC_EVENTS_API_KEY: !GetAtt AppSyncApiKey.ApiKey
+          APPSYNC_HTTP_ENDPOINT: !GetAtt AppSyncEventsApi.Dns.Http
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref ConfigTable
@@ -627,6 +626,10 @@ Resources:
               Action:
                 - events:PutEvents
               Resource: !Sub 'arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/${EventBus}'
+            - Effect: Allow
+              Action:
+                - appsync:EventPublish
+              Resource: !Sub 'arn:aws:appsync:${AWS::Region}:${AWS::AccountId}:apis/${AppSyncEventsApi.ApiId}/*'
       AutoPublishAlias: live
     Metadata:
       BuildMethod: esbuild

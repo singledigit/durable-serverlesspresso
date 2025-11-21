@@ -1,4 +1,5 @@
 import { DurableContext } from "aws-durable-execution-sdk-js";
+import { PublishRequest } from "ob-appsync-events-request";
 
 /**
  * Parse callback result - handles both string and object responses
@@ -34,32 +35,27 @@ export function validateEnvVars(vars: string[]): void {
 }
 
 /**
- * Publish event to AppSync Events for real-time updates using HTTP
+ * Publish event to AppSync Events using IAM-signed request
  */
 export async function publishToAppSync(
   channel: string,
   eventData: any,
-  apiUrl: string,
-  apiKey: string
+  httpEndpoint: string
 ): Promise<void> {
-  if (!apiUrl) {
+  if (!httpEndpoint) {
     console.log(`[LOCAL] Skipping AppSync publish to ${channel}`);
     return;
   }
 
   try {
-    const response = await fetch(apiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-      },
-      body: JSON.stringify({
-        channel,
-        events: [JSON.stringify(eventData)],
-      }),
-    });
+    const request = await PublishRequest.signed(
+      `https://${httpEndpoint}/event`,
+      channel,
+      eventData
+    );
 
+    const response = await fetch(request);
+    
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`AppSync publish failed: ${response.status} - ${errorText}`);

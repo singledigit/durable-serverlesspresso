@@ -15,8 +15,7 @@ const eventBridgeClient = new EventBridgeClient({ region: process.env.AWS_REGION
 const ORDERS_TABLE_NAME = process.env.ORDERS_TABLE_NAME!;
 const CONFIG_TABLE_NAME = process.env.CONFIG_TABLE_NAME!;
 const EVENT_BUS_NAME = process.env.EVENT_BUS_NAME!;
-const APPSYNC_EVENTS_API_URL = process.env.APPSYNC_EVENTS_API_URL!;
-const APPSYNC_EVENTS_API_KEY = process.env.APPSYNC_EVENTS_API_KEY!;
+const APPSYNC_HTTP_ENDPOINT = process.env.APPSYNC_HTTP_ENDPOINT!;
 
 // ========== CONSTANTS ==========
 const TIMEOUTS = {
@@ -124,7 +123,7 @@ async function updateStatusAndPublish(
   ];
 
   await Promise.all(
-    channels.map((channel) => publishToAppSync(channel, eventData, APPSYNC_EVENTS_API_URL, APPSYNC_EVENTS_API_KEY))
+    channels.map((channel) => publishToAppSync(channel, eventData, APPSYNC_HTTP_ENDPOINT))
   );
 }
 
@@ -409,14 +408,12 @@ export const handler = withDurableExecution(
           publishToAppSync(
             `coffee-ordering/orders/${orderData.orderId}`,
             eventData,
-            APPSYNC_EVENTS_API_URL,
-            APPSYNC_EVENTS_API_KEY
+            APPSYNC_HTTP_ENDPOINT
           ),
           publishToAppSync(
             `coffee-ordering/attendee/${orderData.attendeeId}`,
             eventData,
-            APPSYNC_EVENTS_API_URL,
-            APPSYNC_EVENTS_API_KEY
+            APPSYNC_HTTP_ENDPOINT
           ),
         ]);
       },
