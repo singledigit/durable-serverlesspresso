@@ -42,23 +42,33 @@ export async function publishToAppSync(
   eventData: any,
   httpEndpoint: string
 ): Promise<void> {
+  console.log(`[AppSync] Publishing to channel: ${channel}, endpoint: ${httpEndpoint}`);
+  
   if (!httpEndpoint) {
     console.log(`[LOCAL] Skipping AppSync publish to ${channel}`);
     return;
   }
 
   try {
+    const url = `https://${httpEndpoint}/event`;
+    console.log(`[AppSync] Creating signed request to: ${url}`);
+    
     const request = await PublishRequest.signed(
-      `https://${httpEndpoint}/event`,
+      url,
       channel,
       eventData
     );
 
+    console.log(`[AppSync] Sending request...`);
     const response = await fetch(request);
+    
+    console.log(`[AppSync] Response status: ${response.status}`);
     
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`AppSync publish failed: ${response.status} - ${errorText}`);
+    } else {
+      console.log(`[AppSync] Successfully published to ${channel}`);
     }
   } catch (error) {
     console.error(`AppSync publish error:`, error);
