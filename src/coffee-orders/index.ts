@@ -486,7 +486,7 @@ export const handler = withDurableExecution(
         context,
         orderData,
         acceptanceResult.reason || CANCELLATION_REASONS.USER_CANCELLED,
-        (acceptanceResult.cancelledBy as CancelledBy) || "unknown",
+        (acceptanceResult.cancelledBy as CancelledBy) || ("unknown" as CancelledBy),
         workflowTimestamp
       );
     }
@@ -563,7 +563,7 @@ export const handler = withDurableExecution(
         context,
         orderData,
         completionResult.reason || CANCELLATION_REASONS.USER_CANCELLED,
-        (completionResult.cancelledBy as CancelledBy) || "unknown",
+        (completionResult.cancelledBy as CancelledBy) || ("unknown" as CancelledBy),
         workflowTimestamp
       );
     }

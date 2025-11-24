@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020"],
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "resolveJsonModule": true,
+    "moduleResolution": "node",
+    "types": ["node", "jest"],
+    "baseUrl": ".",
+    "paths": {
+      "aws-durable-execution-sdk-js": ["../durable-sdk/packages/aws-durable-execution-sdk-js/dist/index.d.ts"]
+    }
+  },
+  "include": ["*.ts"],
+  "exclude": ["node_modules"]
+}

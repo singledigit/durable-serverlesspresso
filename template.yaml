@@ -764,43 +764,6 @@ Resources:
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${CoffeeOrderingApi}/*'
 
-  PlaygroundFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      FunctionName: playground
-      CodeUri: src/playground
-      Handler: index.handler
-      Layers:
-        - !Ref DurableSdkLayer
-      DurableConfig:
-        ExecutionTimeout: 300
-        RetentionPeriodInDays: 7
-      Policies:
-        - Statement:
-            - Effect: Allow
-              Action:
-                - lambda:CheckpointDurableExecution
-                - lambda:GetDurableExecutionState
-              Resource: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:playground'
-      Events:
-        ApiEvent:
-          Type: Api
-          Properties:
-            RestApiId: !Ref CoffeeOrderingApi
-            Path: /playground
-            Method: post
-    Metadata:
-      BuildMethod: esbuild
-      BuildProperties:
-        Minify: true
-        Target: es2020
-        Sourcemap: true
-        EntryPoints:
-          - index.ts
-        External:
-          - '@aws-sdk/*'
-          - aws-durable-execution-sdk-js
-
 Outputs:
   ApiUrl:
     Description: API Gateway URL
