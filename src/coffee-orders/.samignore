@@ -1,5 +1,0 @@
-# Exclude test files and configuration from SAM build
-test/
-*.test.ts
-*.test.js
-jest.config.js
