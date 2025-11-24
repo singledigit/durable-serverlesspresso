@@ -35,7 +35,7 @@ const CANCELLATION_REASONS = {
 // ========== RETRY STRATEGY ==========
 const retryStrategy = createRetryStrategy({
   maxAttempts: 3,
-  initialDelaySeconds: 1,
+  initialDelay: { seconds: 1 },
   backoffRate: 2.0,
 });
 
@@ -450,7 +450,7 @@ export const handler = withDurableExecution(
       // Create callback and store ID BEFORE waiting to avoid race condition
       const [acceptancePromise, acceptanceCallbackId] = await context.createCallback<CallbackResult>(
         "wait-acceptance",
-        { timeout: TIMEOUTS.ACCEPTANCE }
+        { timeout: { seconds: TIMEOUTS.ACCEPTANCE } }
       );
 
       await context.step("store-acceptance-callback", async () => {
@@ -527,7 +527,7 @@ export const handler = withDurableExecution(
       // Create callback and store ID BEFORE waiting to avoid race condition
       const [completionPromise, completionCallbackId] = await context.createCallback<CallbackResult>(
         "wait-completion",
-        { timeout: TIMEOUTS.COMPLETION }
+        { timeout: { seconds: TIMEOUTS.COMPLETION } }
       );
 
       await context.step("store-completion-callback", async () => {
