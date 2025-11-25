@@ -1,7 +1,6 @@
 import { DurableContext, withDurableExecution, createRetryStrategy } from "aws-durable-execution-sdk-js";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand, UpdateCommand, GetCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
-import { EventBridgeClient, PutEventsCommand } from "@aws-sdk/client-eventbridge";
 import { randomUUID } from "crypto";
 import { OrderRecord, EventConfig, CancelledBy } from "./types";
 import { parseCallbackResult, getTimestamp, publishToAppSync } from "./utils";
@@ -9,12 +8,10 @@ import { parseCallbackResult, getTimestamp, publishToAppSync } from "./utils";
 // ========== AWS CLIENTS ==========
 const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION || "eu-south-1" });
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
-const eventBridgeClient = new EventBridgeClient({ region: process.env.AWS_REGION || "eu-south-1" });
 
 // ========== ENVIRONMENT VARIABLES ==========
 const ORDERS_TABLE_NAME = process.env.ORDERS_TABLE_NAME!;
 const CONFIG_TABLE_NAME = process.env.CONFIG_TABLE_NAME!;
-const EVENT_BUS_NAME = process.env.EVENT_BUS_NAME!;
 const APPSYNC_HTTP_ENDPOINT = process.env.APPSYNC_HTTP_ENDPOINT!;
 
 // ========== CONSTANTS ==========
@@ -22,8 +19,6 @@ const TIMEOUTS = {
   ACCEPTANCE: 120, // 2 minutes
   COMPLETION: 120, // 2 minutes
 } as const;
-
-const EVENT_SOURCE = "coffee.ordering" as const;
 
 const CANCELLATION_REASONS = {
   ACCEPTANCE_TIMEOUT: "Acceptance timeout - no barista accepted within 2 minutes",
@@ -177,41 +172,25 @@ async function handleCancellation(
 }
 
 /**
- * Store callback ID in DynamoDB
+ * Update phase and callback tracking in DynamoDB
  */
-async function storeCallbackId(
+async function updatePhaseAndCallback(
   orderId: string,
-  callbackId: string,
   phase: "WAITING_ACCEPTANCE" | "WAITING_COMPLETION",
-  callbackType: "acceptance" | "completion"
+  callbackId: string
 ): Promise<void> {
   const timestamp = getTimestamp();
-  const updateExpression =
-    callbackType === "acceptance"
-      ? "SET callbackIds = :callbackIds, activeCallbackId = :activeCallbackId, currentPhase = :phase, updatedAt = :timestamp"
-      : "SET callbackIds.completion = :completionCallbackId, activeCallbackId = :activeCallbackId, currentPhase = :phase, updatedAt = :timestamp";
-
-  const expressionAttributeValues =
-    callbackType === "acceptance"
-      ? {
-          ":callbackIds": { acceptance: callbackId },
-          ":activeCallbackId": callbackId,
-          ":phase": phase,
-          ":timestamp": timestamp,
-        }
-      : {
-          ":completionCallbackId": callbackId,
-          ":activeCallbackId": callbackId,
-          ":phase": phase,
-          ":timestamp": timestamp,
-        };
-
+  
   await docClient.send(
     new UpdateCommand({
       TableName: ORDERS_TABLE_NAME,
       Key: { orderId },
-      UpdateExpression: updateExpression,
-      ExpressionAttributeValues: expressionAttributeValues,
+      UpdateExpression: "SET currentPhase = :phase, activeCallbackId = :callbackId, updatedAt = :timestamp",
+      ExpressionAttributeValues: {
+        ":phase": phase,
+        ":callbackId": callbackId,
+        ":timestamp": timestamp,
+      },
     })
   );
 }
@@ -447,23 +426,20 @@ export const handler = withDurableExecution(
     let acceptanceResult: CallbackResult;
 
     try {
-      // Create callback and store ID BEFORE waiting to avoid race condition
-      const [acceptancePromise, acceptanceCallbackId] = await context.createCallback<CallbackResult>(
+      acceptanceResult = await context.waitForCallback<CallbackResult>(
         "wait-acceptance",
+        async (callbackId) => {
+          // Store callback ID in DynamoDB for external systems to use
+          await updatePhaseAndCallback(orderData.orderId, "WAITING_ACCEPTANCE", callbackId);
+          
+          context.logger.info("Acceptance callback registered", {
+            orderId: orderData.orderId,
+            callbackId,
+            phase: "WAITING_ACCEPTANCE",
+          });
+        },
         { timeout: { seconds: TIMEOUTS.ACCEPTANCE } }
       );
-
-      await context.step("store-acceptance-callback", async () => {
-        await storeCallbackId(orderData.orderId, acceptanceCallbackId, "WAITING_ACCEPTANCE", "acceptance");
-        context.logger.info("Acceptance callback ID stored", {
-          orderId: orderData.orderId,
-          callbackId: acceptanceCallbackId,
-          phase: "WAITING_ACCEPTANCE",
-        });
-      }, { retryStrategy });
-
-      // Now wait for the callback
-      acceptanceResult = await acceptancePromise;
     } catch (error: any) {
       context.logger.warn("Acceptance timeout occurred", {
         orderId: orderData.orderId,
@@ -524,23 +500,20 @@ export const handler = withDurableExecution(
     let completionResult: CallbackResult;
 
     try {
-      // Create callback and store ID BEFORE waiting to avoid race condition
-      const [completionPromise, completionCallbackId] = await context.createCallback<CallbackResult>(
+      completionResult = await context.waitForCallback<CallbackResult>(
         "wait-completion",
+        async (callbackId) => {
+          // Store callback ID in DynamoDB for external systems to use
+          await updatePhaseAndCallback(orderData.orderId, "WAITING_COMPLETION", callbackId);
+          
+          context.logger.info("Completion callback registered", {
+            orderId: orderData.orderId,
+            callbackId,
+            phase: "WAITING_COMPLETION",
+          });
+        },
         { timeout: { seconds: TIMEOUTS.COMPLETION } }
       );
-
-      await context.step("store-completion-callback", async () => {
-        await storeCallbackId(orderData.orderId, completionCallbackId, "WAITING_COMPLETION", "completion");
-        context.logger.info("Completion callback ID stored", {
-          orderId: orderData.orderId,
-          callbackId: completionCallbackId,
-          phase: "WAITING_COMPLETION",
-        });
-      }, { retryStrategy });
-
-      // Now wait for the callback
-      completionResult = await completionPromise;
     } catch (error: any) {
       context.logger.warn("Completion timeout occurred", {
         orderId: orderData.orderId,
