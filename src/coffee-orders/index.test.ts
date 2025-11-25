@@ -34,7 +34,7 @@ describe("Coffee Orders Durable Function", () => {
     process.env.EVENT_BUS_NAME = "test-bus";
     process.env.APPSYNC_HTTP_ENDPOINT = "https://test.appsync.com";
     
-    await LocalDurableTestRunner.setupTestEnvironment();
+    await LocalDurableTestRunner.setupTestEnvironment({ skipTime: true });
   });
 
   afterAll(async () => {
@@ -62,7 +62,6 @@ describe("Coffee Orders Durable Function", () => {
 
     const runner = new LocalDurableTestRunner({
       handlerFunction: handler,
-      skipTime: true,
     });
 
     const execution = await runner.run({ payload: createTestEvent() });
@@ -81,7 +80,6 @@ describe("Coffee Orders Durable Function", () => {
 
     const runner = new LocalDurableTestRunner({
       handlerFunction: handler,
-      skipTime: true,
     });
 
     const execution = await runner.run({ payload: createTestEvent() });
@@ -100,7 +98,6 @@ describe("Coffee Orders Durable Function", () => {
 
     const runner = new LocalDurableTestRunner({
       handlerFunction: handler,
-      skipTime: true,
     });
 
     const execution = await runner.run({ payload: createTestEvent() });
@@ -119,7 +116,6 @@ describe("Coffee Orders Durable Function", () => {
 
     const runner = new LocalDurableTestRunner({
       handlerFunction: handler,
-      skipTime: false, // Don't skip time for callback tests
     });
 
     // Start execution without awaiting
