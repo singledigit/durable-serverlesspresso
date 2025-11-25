@@ -57,112 +57,163 @@ describe("Coffee Orders Durable Function", () => {
     ...overrides,
   });
 
-  it("should start execution and create operations", async () => {
-    mockSend.mockResolvedValue({});
+  describe("Execution", () => {
+    it("should initialize and create operations", async () => {
+      mockSend.mockResolvedValue({});
 
-    const runner = new LocalDurableTestRunner({
-      handlerFunction: handler,
+      const runner = new LocalDurableTestRunner({
+        handlerFunction: handler,
+      });
+
+      const execution = await runner.run({ payload: createTestEvent() });
+
+      expect(execution).toBeDefined();
+      const operations = execution.getOperations();
+      expect(operations.length).toBeGreaterThan(0);
     });
-
-    const execution = await runner.run({ payload: createTestEvent() });
-
-    expect(execution).toBeDefined();
-    const operations = execution.getOperations();
-    expect(operations.length).toBeGreaterThan(0);
   });
 
-  it("should cancel order when store is closed", async () => {
-    mockSend
-      .mockResolvedValueOnce({})
-      .mockResolvedValueOnce({ Item: { eventId: "event-789", storeOpen: false } })
-      .mockResolvedValueOnce({ Items: [] })
-      .mockResolvedValue({});
+  describe("Validation", () => {
+    it("should cancel order when store is closed", async () => {
+      mockSend
+        .mockResolvedValueOnce({})
+        .mockResolvedValueOnce({ Item: { eventId: "event-789", storeOpen: false } })
+        .mockResolvedValueOnce({ Items: [] })
+        .mockResolvedValue({});
 
-    const runner = new LocalDurableTestRunner({
-      handlerFunction: handler,
+      const runner = new LocalDurableTestRunner({
+        handlerFunction: handler,
+      });
+
+      const execution = await runner.run({ payload: createTestEvent() });
+      const result = execution.getResult();
+      
+      expect(result?.status).toBe("CANCELLED");
+      expect(result?.reason).toContain("closed");
     });
 
-    const execution = await runner.run({ payload: createTestEvent() });
-    const result = execution.getResult();
-    
-    expect(result?.status).toBe("CANCELLED");
-    expect(result?.reason).toContain("closed");
+    it("should cancel order when daily limit exceeded", async () => {
+      mockSend
+        .mockResolvedValueOnce({})
+        .mockResolvedValueOnce({ Item: { eventId: "event-789", storeOpen: true, maxOrdersPerAttendee: 2 } })
+        .mockResolvedValueOnce({ Items: [{ status: "COMPLETED" }, { status: "COMPLETED" }] })
+        .mockResolvedValue({});
+
+      const runner = new LocalDurableTestRunner({
+        handlerFunction: handler,
+      });
+
+      const execution = await runner.run({ payload: createTestEvent() });
+      const result = execution.getResult();
+      
+      expect(result?.status).toBe("CANCELLED");
+      expect(result?.reason).toContain("limit");
+    });
   });
 
-  it("should cancel order when daily limit exceeded", async () => {
-    mockSend
-      .mockResolvedValueOnce({})
-      .mockResolvedValueOnce({ Item: { eventId: "event-789", storeOpen: true, maxOrdersPerAttendee: 2 } })
-      .mockResolvedValueOnce({ Items: [{ status: "COMPLETED" }, { status: "COMPLETED" }] })
-      .mockResolvedValue({});
+  describe("Callbacks", () => {
+    it("should handle acceptance callback with waitForCallback", async () => {
+      mockSend
+        .mockResolvedValueOnce({})
+        .mockResolvedValueOnce({ Item: { eventId: "event-789", storeOpen: true, maxOrdersPerAttendee: 3 } })
+        .mockResolvedValueOnce({ Items: [] })
+        .mockResolvedValue({});
 
-    const runner = new LocalDurableTestRunner({
-      handlerFunction: handler,
-    });
+      const runner = new LocalDurableTestRunner({
+        handlerFunction: handler,
+      });
 
-    const execution = await runner.run({ payload: createTestEvent() });
-    const result = execution.getResult();
-    
-    expect(result?.status).toBe("CANCELLED");
-    expect(result?.reason).toContain("limit");
+      const executionPromise = runner.run({ payload: createTestEvent() });
+
+      // Get the acceptance callback operation
+      const acceptanceOp = runner.getOperation("wait-acceptance");
+      await acceptanceOp.waitForData();
+
+      // Verify callback was created
+      const callbackDetails = acceptanceOp.getCallbackDetails();
+      expect(callbackDetails).toBeDefined();
+      expect(callbackDetails?.callbackId).toBeDefined();
+
+      // Send acceptance callback
+      await acceptanceOp.sendCallbackSuccess(
+        JSON.stringify({
+          action: "ACCEPT",
+          baristaId: "barista-123",
+        })
+      );
+
+      // Get the completion callback operation
+      const completionOp = runner.getOperation("wait-completion");
+      await completionOp.waitForData();
+
+      // Verify completion callback was created
+      const completionCallbackDetails = completionOp.getCallbackDetails();
+      expect(completionCallbackDetails).toBeDefined();
+      expect(completionCallbackDetails?.callbackId).toBeDefined();
+
+      // Send completion callback
+      await completionOp.sendCallbackSuccess(
+        JSON.stringify({
+          action: "COMPLETE",
+          baristaId: "barista-456",
+        })
+      );
+
+      // Wait for execution to complete
+      const execution = await executionPromise;
+      const result = execution.getResult();
+
+      expect(result?.status).toBe("COMPLETED");
+      expect(result?.orderId).toBe("test-order-123");
+    }, 10000);
+
+    it("should handle completion callback with waitForCallback", async () => {
+      mockSend
+        .mockResolvedValueOnce({})
+        .mockResolvedValueOnce({ Item: { eventId: "event-789", storeOpen: true, maxOrdersPerAttendee: 3 } })
+        .mockResolvedValueOnce({ Items: [] })
+        .mockResolvedValue({});
+
+      const runner = new LocalDurableTestRunner({
+        handlerFunction: handler,
+      });
+
+      const executionPromise = runner.run({ payload: createTestEvent() });
+
+      // Handle acceptance
+      const acceptanceOp = runner.getOperation("wait-acceptance");
+      await acceptanceOp.waitForData();
+      await acceptanceOp.sendCallbackSuccess(
+        JSON.stringify({
+          action: "ACCEPT",
+          baristaId: "barista-123",
+        })
+      );
+
+      // Get the completion callback operation
+      const completionOp = runner.getOperation("wait-completion");
+      await completionOp.waitForData();
+
+      // Verify completion callback details
+      const completionCallbackDetails = completionOp.getCallbackDetails();
+      expect(completionCallbackDetails).toBeDefined();
+      expect(completionCallbackDetails?.callbackId).toBeDefined();
+
+      // Send completion callback
+      await completionOp.sendCallbackSuccess(
+        JSON.stringify({
+          action: "COMPLETE",
+          baristaId: "barista-999",
+        })
+      );
+
+      const execution = await executionPromise;
+      const result = execution.getResult();
+
+      expect(result?.status).toBe("COMPLETED");
+      expect(result?.orderId).toBe("test-order-123");
+    }, 10000);
   });
-
-  it("should wait for barista acceptance and handle callback", async () => {
-    mockSend
-      .mockResolvedValueOnce({}) // initialize order
-      .mockResolvedValueOnce({ Item: { eventId: "event-789", storeOpen: true, maxOrdersPerAttendee: 3 } }) // event config
-      .mockResolvedValueOnce({ Items: [] }) // previous orders
-      .mockResolvedValue({}); // all other updates
-
-    const runner = new LocalDurableTestRunner({
-      handlerFunction: handler,
-    });
-
-    // Start execution without awaiting
-    const executionPromise = runner.run({ payload: createTestEvent() });
-
-    // Get the acceptance callback operation
-    const acceptanceOp = runner.getOperation("wait-acceptance");
-    await acceptanceOp.waitForData();
-
-    // Verify callback was created
-    const callbackDetails = acceptanceOp.getCallbackDetails();
-    expect(callbackDetails).toBeDefined();
-    expect(callbackDetails?.callbackId).toBeDefined();
-
-    // Send acceptance callback
-    await acceptanceOp.sendCallbackSuccess(
-      JSON.stringify({
-        action: "ACCEPT",
-        baristaId: "barista-123",
-      })
-    );
-
-    // Get the completion callback operation
-    const completionOp = runner.getOperation("wait-completion");
-    await completionOp.waitForData();
-
-    // Verify completion callback was created
-    const completionCallbackDetails = completionOp.getCallbackDetails();
-    expect(completionCallbackDetails).toBeDefined();
-    expect(completionCallbackDetails?.callbackId).toBeDefined();
-
-    // Send completion callback
-    await completionOp.sendCallbackSuccess(
-      JSON.stringify({
-        action: "COMPLETE",
-        baristaId: "barista-123",
-      })
-    );
-
-    // Wait for execution to complete
-    const execution = await executionPromise;
-    const result = execution.getResult();
-
-    // Should complete successfully
-    expect(result?.status).toBe("COMPLETED");
-    expect(result?.orderId).toBe("test-order-123");
-  }, 10000); // Increase timeout to 10 seconds
 });
 
 
