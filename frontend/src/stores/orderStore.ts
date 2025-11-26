@@ -304,7 +304,7 @@ export const useOrderStore = defineStore('order', () => {
 
       // Set currentOrder to the first pending order (most recent)
       if (pending.length > 0 && !currentOrder.value) {
-        currentOrder.value = pending[0];
+        currentOrder.value = pending[0]!;
       }
 
       // Cache in localStorage

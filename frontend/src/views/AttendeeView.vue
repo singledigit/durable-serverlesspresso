@@ -55,9 +55,9 @@
           
           <!-- Message -->
           <h2 class="text-3xl font-bold text-gray-800 mb-3">We're Closed</h2>
-          <p class="text-lg text-gray-600 mb-2">Come back during our hours:</p>
+          <p class="text-lg text-gray-600 mb-2">The coffee shop is currently closed.</p>
           <p class="text-xl font-semibold text-[--color-coffee-brown]">
-            {{ eventStore.currentEvent?.openingTime }} - {{ eventStore.currentEvent?.closingTime }}
+            Check back later!
           </p>
           
           <!-- Decorative elements -->
