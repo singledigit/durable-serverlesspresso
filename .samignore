@@ -1,0 +1,40 @@
+# Exclude test files and development dependencies
+**/__tests__/
+**/*.test.ts
+**/*.test.js
+**/*.spec.ts
+**/*.spec.js
+**/test/
+**/tests/
+**/.vscode/
+**/.github/
+**/.husky/
+**/docs/
+**/examples/
+**/*.md
+!README.md
+**/tsconfig.json
+**/eslint.config.js
+**/rollup.config.js
+**/.prettierrc
+**/.gitignore
+**/CONTRIBUTING.md
+**/CODE_OF_CONDUCT.md
+**/LICENSE
+**/NOTICE
+
+# Exclude source TypeScript files (only include compiled JS)
+src/durable-sdk/packages/
+
+# Exclude development node_modules
+src/durable-sdk/node_modules/@types/
+src/durable-sdk/node_modules/@typescript-eslint/
+src/durable-sdk/node_modules/typescript/
+src/durable-sdk/node_modules/eslint/
+src/durable-sdk/node_modules/prettier/
+src/durable-sdk/node_modules/jest/
+src/durable-sdk/node_modules/@jest/
+src/durable-sdk/node_modules/vitest/
+src/durable-sdk/node_modules/@vitest/
+src/durable-sdk/node_modules/rollup/
+src/durable-sdk/node_modules/@rollup/
