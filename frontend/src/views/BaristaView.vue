@@ -911,6 +911,9 @@ async function initializeAppSyncEvents(): Promise<void> {
     // Subscribe to barista queue channel for new orders
     subscribeToBaristaQueue();
     
+    // Subscribe to store status channel
+    subscribeToStoreStatus();
+    
     // Subscribe to existing pending orders for status updates
     subscribeToExistingOrders();
     
@@ -919,6 +922,33 @@ async function initializeAppSyncEvents(): Promise<void> {
     console.error('[BaristaView] Failed to initialize AppSync Events:', error);
     console.warn('[BaristaView] Real-time updates will not be available');
   }
+}
+
+/**
+ * Subscribe to store status channel for open/closed updates
+ * Channel: /coffee-ordering/store/{eventId}
+ */
+function subscribeToStoreStatus(): void {
+  const eventId = eventStore.eventId;
+  if (!eventId) {
+    console.warn('[BaristaView] Cannot subscribe to store status - no event ID');
+    return;
+  }
+  
+  const channel = `/coffee-ordering/store/${eventId}`;
+  
+  console.log(`[BaristaView] Subscribing to store status channel: ${channel}`);
+  
+  const unsubscribe = appSyncEventsService.subscribe(channel, (event: any) => {
+    console.log(`[BaristaView] Received store status event:`, event);
+    
+    if (event.type === 'STORE_STATUS_CHANGED' && event.data?.storeOpen !== undefined) {
+      eventStore.storeOpen = event.data.storeOpen;
+      console.log(`[BaristaView] Store status updated to: ${event.data.storeOpen ? 'OPEN' : 'CLOSED'}`);
+    }
+  });
+  
+  unsubscribeCallbacks.value.push(unsubscribe);
 }
 
 /**
