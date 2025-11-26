@@ -1,5 +1,5 @@
-// @ts-ignore - Using local testing library
-import { LocalDurableTestRunner } from "../durable-sdk/packages/aws-durable-execution-sdk-js-testing/dist-cjs/index.js";
+// @ts-ignore - Using testing library from /tmp
+import { LocalDurableTestRunner } from "/tmp/aws-durable-execution-sdk-js/packages/aws-durable-execution-sdk-js-testing/dist-cjs/index.js";
 
 // Mock AWS SDK clients
 const mockSend = jest.fn();
