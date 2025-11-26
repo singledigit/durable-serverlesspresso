@@ -623,7 +623,10 @@ Resources:
               Action:
                 - lambda:CheckpointDurableExecution
                 - lambda:GetDurableExecutionState
-              Resource: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-CoffeeOrdersFunction-*'
+              Resource:
+                - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-CoffeeOrdersFunction-*'
+                - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-CoffeeOrdersFunction-*:*'
+                - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-CoffeeOrdersFunction-*/durable-execution/*'
             - Effect: Allow
               Action:
                 - events:PutEvents
