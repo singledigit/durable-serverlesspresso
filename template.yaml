@@ -708,8 +708,13 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref OrdersTable
-        - DynamoDBReadPolicy:
+        - DynamoDBCrudPolicy:
             TableName: !Ref ConfigTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - appsync:EventPublish
+              Resource: !Sub 'arn:aws:appsync:${AWS::Region}:${AWS::AccountId}:apis/${AppSyncEventsApi.ApiId}/channelNamespace/*'
       Events:
         OrderEvents:
           Type: EventBridgeRule
@@ -725,6 +730,7 @@ Resources:
                 - ORDER_COMPLETED
                 - ORDER_CANCELLED
                 - ORDER_FAILED
+                - STORE_STATUS_CHANGED
     Metadata:
       BuildMethod: esbuild
       BuildProperties:

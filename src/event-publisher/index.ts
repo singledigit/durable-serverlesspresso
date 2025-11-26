@@ -1,9 +1,13 @@
 import { EventBridgeEvent } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import { SignatureV4 } from "@smithy/signature-v4";
+import { Sha256 } from "@aws-crypto/sha256-js";
+import { HttpRequest } from "@smithy/protocol-http";
+import { defaultProvider } from "@aws-sdk/credential-provider-node";
 
-const client = new DynamoDBClient({});
-const docClient = DynamoDBDocumentClient.from(client);
+const dynamoClient = new DynamoDBClient({});
+const docClient = DynamoDBDocumentClient.from(dynamoClient);
 
 const ORDERS_TABLE_NAME = process.env.ORDERS_TABLE_NAME!;
 const CONFIG_TABLE_NAME = process.env.CONFIG_TABLE_NAME!;
@@ -296,21 +300,40 @@ async function publishToAppSyncEvents(
 }
 
 /**
- * Publish a single event to an AppSync Events channel
+ * Publish a single event to an AppSync Events channel using IAM authentication
  */
 async function publishToChannel(channel: string, eventData: any): Promise<void> {
-  // APPSYNC_EVENTS_API_URL already includes /event at the end
-  const response = await fetch(APPSYNC_EVENTS_API_URL, {
+  const url = new URL(APPSYNC_EVENTS_API_URL);
+  const body = JSON.stringify({
+    channel,
+    events: [JSON.stringify(eventData)],
+  });
+
+  const request = new HttpRequest({
     method: "POST",
+    protocol: url.protocol.slice(0, -1),
+    hostname: url.hostname,
+    path: url.pathname,
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": APPSYNC_EVENTS_API_KEY,
+      host: url.hostname,
     },
-    body: JSON.stringify({
-      channel,
-      // AppSync Events requires events to be stringified JSON
-      events: [JSON.stringify(eventData)],
-    }),
+    body,
+  });
+
+  const signer = new SignatureV4({
+    service: "appsync",
+    region: process.env.AWS_REGION || "us-east-1",
+    credentials: defaultProvider(),
+    sha256: Sha256,
+  });
+
+  const signedRequest = await signer.sign(request);
+
+  const response = await fetch(url.toString(), {
+    method: signedRequest.method,
+    headers: signedRequest.headers as Record<string, string>,
+    body: signedRequest.body,
   });
 
   if (!response.ok) {

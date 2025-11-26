@@ -11,7 +11,7 @@
     "types": ["node", "jest"],
     "baseUrl": ".",
     "paths": {
-      "aws-durable-execution-sdk-js": ["../durable-sdk/packages/aws-durable-execution-sdk-js/dist-types/index.d.ts"]
+      "aws-durable-execution-sdk-js": ["/tmp/aws-durable-execution-sdk-js/packages/aws-durable-execution-sdk-js/dist-types/index.d.ts"]
     }
   },
   "include": ["*.ts"],
