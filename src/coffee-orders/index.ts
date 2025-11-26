@@ -441,6 +441,7 @@ export const handler = withDurableExecution(
         "wait-acceptance",
         async (callbackId, ctx) => {
           // Store callback ID in DynamoDB for external systems to use
+          // Note: This runs synchronously before the function terminates
           await updatePhaseAndCallback(orderData.orderId, "WAITING_ACCEPTANCE", callbackId);
           
           ctx.logger.info("Acceptance callback registered", {
@@ -515,6 +516,7 @@ export const handler = withDurableExecution(
         "wait-completion",
         async (callbackId, ctx) => {
           // Store callback ID in DynamoDB for external systems to use
+          // Note: This runs synchronously before the function terminates
           await updatePhaseAndCallback(orderData.orderId, "WAITING_COMPLETION", callbackId);
           
           ctx.logger.info("Completion callback registered", {
