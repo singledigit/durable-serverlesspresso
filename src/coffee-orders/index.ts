@@ -452,10 +452,7 @@ export const handler = withDurableExecution(
         },
         { 
           timeout: { seconds: TIMEOUTS.ACCEPTANCE },
-          retryStrategy: (error, attemptCount) => ({
-            shouldRetry: attemptCount < 3,
-            delay: { seconds: Math.pow(2, attemptCount - 1) } // 1s, 2s, 4s
-          })
+          retryStrategy
         }
       );
     } catch (error: any) {
@@ -533,10 +530,7 @@ export const handler = withDurableExecution(
         },
         { 
           timeout: { seconds: TIMEOUTS.COMPLETION },
-          retryStrategy: (error, attemptCount) => ({
-            shouldRetry: attemptCount < 3,
-            delay: { seconds: Math.pow(2, attemptCount - 1) } // 1s, 2s, 4s
-          })
+          retryStrategy
         }
       );
     } catch (error: any) {
