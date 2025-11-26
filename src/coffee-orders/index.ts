@@ -181,18 +181,35 @@ async function updatePhaseAndCallback(
 ): Promise<void> {
   const timestamp = getTimestamp();
   
-  await docClient.send(
-    new UpdateCommand({
-      TableName: ORDERS_TABLE_NAME,
-      Key: { orderId },
-      UpdateExpression: "SET currentPhase = :phase, activeCallbackId = :callbackId, updatedAt = :timestamp",
-      ExpressionAttributeValues: {
-        ":phase": phase,
-        ":callbackId": callbackId,
-        ":timestamp": timestamp,
-      },
-    })
-  );
+  if (phase === "WAITING_ACCEPTANCE") {
+    await docClient.send(
+      new UpdateCommand({
+        TableName: ORDERS_TABLE_NAME,
+        Key: { orderId },
+        UpdateExpression: `SET currentPhase = :phase, activeCallbackId = :callbackId, callbackIds = :callbackIds, updatedAt = :timestamp`,
+        ExpressionAttributeValues: {
+          ":phase": phase,
+          ":callbackId": callbackId,
+          ":callbackIds": { acceptance: callbackId },
+          ":timestamp": timestamp,
+        },
+      })
+    );
+  } else {
+    // For completion, we need to preserve the acceptance callback
+    await docClient.send(
+      new UpdateCommand({
+        TableName: ORDERS_TABLE_NAME,
+        Key: { orderId },
+        UpdateExpression: `SET currentPhase = :phase, activeCallbackId = :callbackId, callbackIds.completion = :callbackId, updatedAt = :timestamp`,
+        ExpressionAttributeValues: {
+          ":phase": phase,
+          ":callbackId": callbackId,
+          ":timestamp": timestamp,
+        },
+      })
+    );
+  }
 }
 
 // ========== MAIN HANDLER ==========
@@ -420,20 +437,22 @@ export const handler = withDurableExecution(
     let acceptanceResult: CallbackResult;
 
     try {
-      acceptanceResult = await context.waitForCallback<CallbackResult>(
-        "wait-acceptance",
-        async (callbackId) => {
-          // Store callback ID in DynamoDB for external systems to use
-          await updatePhaseAndCallback(orderData.orderId, "WAITING_ACCEPTANCE", callbackId);
-          
-          context.logger.info("Acceptance callback registered", {
-            orderId: orderData.orderId,
-            callbackId,
-            phase: "WAITING_ACCEPTANCE",
-          });
-        },
-        { timeout: { seconds: TIMEOUTS.ACCEPTANCE } }
-      );
+      const [acceptancePromise, acceptanceCallbackId] = await context.createCallback<CallbackResult>({
+        timeout: { seconds: TIMEOUTS.ACCEPTANCE }
+      });
+      
+      // Store callback ID in DynamoDB for external systems to use
+      await context.step("store-acceptance-callback", async () => {
+        await updatePhaseAndCallback(orderData.orderId, "WAITING_ACCEPTANCE", acceptanceCallbackId);
+        
+        context.logger.info("Acceptance callback registered", {
+          orderId: orderData.orderId,
+          callbackId: acceptanceCallbackId,
+          phase: "WAITING_ACCEPTANCE",
+        });
+      });
+      
+      acceptanceResult = await acceptancePromise;
     } catch (error: any) {
       context.logger.warn("Acceptance timeout occurred", {
         orderId: orderData.orderId,
@@ -494,20 +513,22 @@ export const handler = withDurableExecution(
     let completionResult: CallbackResult;
 
     try {
-      completionResult = await context.waitForCallback<CallbackResult>(
-        "wait-completion",
-        async (callbackId) => {
-          // Store callback ID in DynamoDB for external systems to use
-          await updatePhaseAndCallback(orderData.orderId, "WAITING_COMPLETION", callbackId);
-          
-          context.logger.info("Completion callback registered", {
-            orderId: orderData.orderId,
-            callbackId,
-            phase: "WAITING_COMPLETION",
-          });
-        },
-        { timeout: { seconds: TIMEOUTS.COMPLETION } }
-      );
+      const [completionPromise, completionCallbackId] = await context.createCallback<CallbackResult>({
+        timeout: { seconds: TIMEOUTS.COMPLETION }
+      });
+      
+      // Store callback ID in DynamoDB for external systems to use
+      await context.step("store-completion-callback", async () => {
+        await updatePhaseAndCallback(orderData.orderId, "WAITING_COMPLETION", completionCallbackId);
+        
+        context.logger.info("Completion callback registered", {
+          orderId: orderData.orderId,
+          callbackId: completionCallbackId,
+          phase: "WAITING_COMPLETION",
+        });
+      });
+      
+      completionResult = await completionPromise;
     } catch (error: any) {
       context.logger.warn("Completion timeout occurred", {
         orderId: orderData.orderId,

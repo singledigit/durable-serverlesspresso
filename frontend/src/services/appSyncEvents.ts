@@ -433,8 +433,8 @@ class AppSyncEventsService {
     // Generate unique subscription ID
     const subscriptionId = `sub-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
-    // Remove leading slash from channel if present
-    const formattedChannel = channel.startsWith('/') ? channel.substring(1) : channel;
+    // Ensure channel has leading slash (required by AppSync Events)
+    const formattedChannel = channel.startsWith('/') ? channel : `/${channel}`;
     
     // Store the mapping between subscription ID and channel
     this.subscriptionIdToChannel.set(subscriptionId, channel);
