@@ -450,7 +450,13 @@ export const handler = withDurableExecution(
             phase: "WAITING_ACCEPTANCE",
           });
         },
-        { timeout: { seconds: TIMEOUTS.ACCEPTANCE } }
+        { 
+          timeout: { seconds: TIMEOUTS.ACCEPTANCE },
+          retryStrategy: (error, attemptCount) => ({
+            shouldRetry: attemptCount < 3,
+            delay: { seconds: Math.pow(2, attemptCount - 1) } // 1s, 2s, 4s
+          })
+        }
       );
     } catch (error: any) {
       context.logger.warn("Acceptance timeout occurred", {
@@ -525,7 +531,13 @@ export const handler = withDurableExecution(
             phase: "WAITING_COMPLETION",
           });
         },
-        { timeout: { seconds: TIMEOUTS.COMPLETION } }
+        { 
+          timeout: { seconds: TIMEOUTS.COMPLETION },
+          retryStrategy: (error, attemptCount) => ({
+            shouldRetry: attemptCount < 3,
+            delay: { seconds: Math.pow(2, attemptCount - 1) } // 1s, 2s, 4s
+          })
+        }
       );
     } catch (error: any) {
       context.logger.warn("Completion timeout occurred", {
