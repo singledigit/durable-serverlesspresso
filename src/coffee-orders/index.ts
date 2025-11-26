@@ -112,9 +112,9 @@ async function updateStatusAndPublish(
   // Publish to AppSync for real-time updates
   const eventData = { type: eventType, orderId, timestamp, data: detail };
   const channels = [
-    `coffee-ordering/orders/${orderId}`,
-    ...(detail.attendeeId ? [`coffee-ordering/attendee/${detail.attendeeId}`] : []),
-    ...(status === "QUEUED" ? ["coffee-ordering/barista/queue"] : []),
+    `/coffee-ordering/orders/${orderId}`,
+    ...(detail.attendeeId ? [`/coffee-ordering/attendee/${detail.attendeeId}`] : []),
+    ...(status === "QUEUED" ? ["/coffee-ordering/barista/queue"] : []),
   ];
 
   await Promise.all(
