@@ -548,6 +548,105 @@ Resources:
                     Access-Control-Allow-Origin:
                       schema:
                         type: string
+          /config/{eventId}:
+            get:
+              summary: Get event configuration
+              x-amazon-apigateway-integration:
+                type: aws
+                httpMethod: POST
+                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:dynamodb:action/GetItem'
+                credentials: !GetAtt ApiGatewayRole.Arn
+                passthroughBehavior: never
+                requestParameters:
+                  integration.request.header.Content-Type: "'application/x-amz-json-1.0'"
+                  integration.request.header.X-Amz-Target: "'DynamoDB_20120810.GetItem'"
+                requestTemplates:
+                  application/json: !Sub |
+                    {
+                      "TableName": "${ConfigTable}",
+                      "Key": {
+                        "eventId": {"S": "$input.params('eventId')"}
+                      }
+                    }
+                responses:
+                  default:
+                    statusCode: 200
+                    responseTemplates:
+                      application/json: |
+                        #set($item = $input.path('$.Item'))
+                        #if($item.eventId)
+                        {
+                          "eventId": "$item.eventId.S",
+                          "eventName": "$item.eventName.S",
+                          "storeOpen": $item.storeOpen.BOOL,
+                          "maxOrdersPerAttendee": $item.maxOrdersPerAttendee.N,
+                          "createdAt": "$item.createdAt.S",
+                          "updatedAt": "$item.updatedAt.S"
+                        }
+                        #else
+                        {
+                          "error": "Event configuration not found"
+                        }
+                        #end
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+              responses:
+                '200':
+                  description: Event configuration
+                  headers:
+                    Access-Control-Allow-Origin:
+                      schema:
+                        type: string
+          /orders/count:
+            get:
+              summary: Get order count for attendee
+              x-amazon-apigateway-integration:
+                type: aws
+                httpMethod: POST
+                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:dynamodb:action/Query'
+                credentials: !GetAtt ApiGatewayRole.Arn
+                passthroughBehavior: never
+                requestParameters:
+                  integration.request.header.Content-Type: "'application/x-amz-json-1.0'"
+                  integration.request.header.X-Amz-Target: "'DynamoDB_20120810.Query'"
+                requestTemplates:
+                  application/json: !Sub |
+                    #set($attendeeId = $input.params('attendeeId'))
+                    #set($eventId = $input.params('eventId'))
+                    #set($today = $context.requestTime.substring(0,10))
+                    {
+                      "TableName": "${OrdersTable}",
+                      "IndexName": "AttendeeEventIndex",
+                      "KeyConditionExpression": "attendeeId = :attendeeId AND eventId = :eventId",
+                      "FilterExpression": "#status = :completed AND begins_with(createdAt, :today)",
+                      "ExpressionAttributeNames": {
+                        "#status": "status"
+                      },
+                      "ExpressionAttributeValues": {
+                        ":attendeeId": {"S": "$attendeeId"},
+                        ":eventId": {"S": "$eventId"},
+                        ":completed": {"S": "COMPLETED"},
+                        ":today": {"S": "$today"}
+                      },
+                      "Select": "COUNT"
+                    }
+                responses:
+                  default:
+                    statusCode: 200
+                    responseTemplates:
+                      application/json: |
+                        {
+                          "count": $input.path('$.Count')
+                        }
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+              responses:
+                '200':
+                  description: Order count
+                  headers:
+                    Access-Control-Allow-Origin:
+                      schema:
+                        type: string
 
   ApiGatewayRole:
     Type: AWS::IAM::Role
@@ -580,6 +679,9 @@ Resources:
                 Resource:
                   - !GetAtt OrdersTable.Arn
                   - !Sub '${OrdersTable.Arn}/index/*'
+              - Effect: Allow
+                Action: dynamodb:GetItem
+                Resource: !GetAtt ConfigTable.Arn
         - PolicyName: PutEvents
           PolicyDocument:
             Version: '2012-10-17'

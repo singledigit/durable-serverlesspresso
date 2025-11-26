@@ -49,61 +49,10 @@ export const useEventStore = defineStore('event', () => {
   });
 
   /**
-   * Get store hours as formatted string
-   */
-  const storeHours = computed(() => {
-    if (!currentEvent.value) {
-      return 'Not available';
-    }
-
-    const { openingTime, closingTime } = currentEvent.value;
-    
-    // Format times (assuming ISO 8601 time format like "07:00:00")
-    const formatTime = (time: string) => {
-      const parts = time.split(':');
-      const hours = parts[0];
-      const minutes = parts[1];
-      
-      if (!hours || !minutes) {
-        return time; // Return original if format is unexpected
-      }
-      
-      const hour = parseInt(hours, 10);
-      const ampm = hour >= 12 ? 'PM' : 'AM';
-      const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-      return `${displayHour}:${minutes} ${ampm}`;
-    };
-
-    return `${formatTime(openingTime)} - ${formatTime(closingTime)}`;
-  });
-
-  /**
    * Get maximum orders per attendee
    */
   const maxOrdersPerAttendee = computed(() => {
     return currentEvent.value?.maxOrdersPerAttendee || 3;
-  });
-
-  /**
-   * Check if store is currently within operating hours
-   * Note: This checks the time, not the storeOpen flag
-   */
-  const isWithinOperatingHours = computed(() => {
-    if (!currentEvent.value) {
-      return false;
-    }
-
-    const now = new Date();
-    const timeParts = now.toTimeString().split(' ');
-    const currentTime = timeParts[0]; // Get HH:MM:SS
-
-    if (!currentTime) {
-      return false;
-    }
-
-    const { openingTime, closingTime } = currentEvent.value;
-
-    return currentTime >= openingTime && currentTime <= closingTime;
   });
 
   /**
@@ -114,20 +63,12 @@ export const useEventStore = defineStore('event', () => {
       return 'Event configuration not loaded';
     }
 
-    if (storeOpen.value) {
-      return 'Store is open';
-    }
-
-    if (isWithinOperatingHours.value) {
-      return 'Store is closed (within operating hours)';
-    }
-
-    return `Store is closed. Hours: ${storeHours.value}`;
+    return storeOpen.value ? 'Store is open' : 'Store is closed';
   });
 
   /**
    * Check if orders can be placed
-   * Store must be open (only checks storeOpen flag, not time-based hours)
+   * Store must be open
    */
   const canPlaceOrders = computed(() => {
     return storeOpen.value;
@@ -137,7 +78,7 @@ export const useEventStore = defineStore('event', () => {
 
   /**
    * Load event configuration
-   * Fetches event data from backend or uses environment variable
+   * Fetches event data from backend API
    * 
    * @param eventId - The event ID to load configuration for
    */
@@ -153,26 +94,20 @@ export const useEventStore = defineStore('event', () => {
         throw new Error('Event ID not provided and VITE_EVENT_ID not set');
       }
 
-      // TODO: Replace with actual API call when backend endpoint is available
-      // For now, create a mock configuration based on environment
-      // In production, this would be: await apiService.getEventConfig(targetEventId);
+      // Import API service dynamically to avoid circular dependencies
+      const { apiService } = await import('../services/api');
       
-      // Mock event configuration for development
-      const mockConfig: EventConfig = {
-        eventId: targetEventId,
-        eventName: import.meta.env.VITE_EVENT_NAME || 'AWS re:Invent 2025',
-        storeOpen: true, // Default to open for development
-        openingTime: '07:00:00',
-        closingTime: '18:00:00',
-        maxOrdersPerAttendee: 3,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
+      // Fetch event configuration from API
+      const config = await apiService.getEventConfig(targetEventId);
+      
+      if (config.error) {
+        throw new Error(config.error);
+      }
 
-      currentEvent.value = mockConfig;
-      storeOpen.value = mockConfig.storeOpen;
+      currentEvent.value = config;
+      storeOpen.value = config.storeOpen;
 
-      console.log('Event configuration loaded:', mockConfig);
+      console.log('Event configuration loaded:', config);
     } catch (err: any) {
       error.value = err.message || 'Failed to load event configuration';
       console.error('Error loading event configuration:', err);
@@ -263,90 +198,6 @@ export const useEventStore = defineStore('event', () => {
   }
 
   /**
-   * Check if current time is within store hours
-   * Useful for displaying warnings to users
-   */
-  function checkStoreHours(): boolean {
-    return isWithinOperatingHours.value;
-  }
-
-  /**
-   * Get time until store opens (in minutes)
-   * Returns null if store is already open or past closing time
-   */
-  const timeUntilOpen = computed((): number | null => {
-    if (!currentEvent.value || storeOpen.value) {
-      return null;
-    }
-
-    const now = new Date();
-    const timeParts = now.toTimeString().split(' ');
-    const currentTime = timeParts[0];
-    
-    if (!currentTime) {
-      return null;
-    }
-
-    const { openingTime } = currentEvent.value;
-
-    if (currentTime >= openingTime) {
-      return null; // Already past opening time
-    }
-
-    // Calculate minutes until opening
-    const currentTimeParts = currentTime.split(':').map(Number);
-    const openTimeParts = openingTime.split(':').map(Number);
-    
-    const currentHours = currentTimeParts[0] || 0;
-    const currentMinutes = currentTimeParts[1] || 0;
-    const openHours = openTimeParts[0] || 0;
-    const openMinutes = openTimeParts[1] || 0;
-
-    const currentTotalMinutes = currentHours * 60 + currentMinutes;
-    const openTotalMinutes = openHours * 60 + openMinutes;
-
-    return openTotalMinutes - currentTotalMinutes;
-  });
-
-  /**
-   * Get time until store closes (in minutes)
-   * Returns null if store is closed or past closing time
-   */
-  const timeUntilClose = computed((): number | null => {
-    if (!currentEvent.value || !storeOpen.value) {
-      return null;
-    }
-
-    const now = new Date();
-    const timeParts = now.toTimeString().split(' ');
-    const currentTime = timeParts[0];
-    
-    if (!currentTime) {
-      return null;
-    }
-
-    const { closingTime } = currentEvent.value;
-
-    if (currentTime >= closingTime) {
-      return null; // Already past closing time
-    }
-
-    // Calculate minutes until closing
-    const currentTimeParts = currentTime.split(':').map(Number);
-    const closeTimeParts = closingTime.split(':').map(Number);
-    
-    const currentHours = currentTimeParts[0] || 0;
-    const currentMinutes = currentTimeParts[1] || 0;
-    const closeHours = closeTimeParts[0] || 0;
-    const closeMinutes = closeTimeParts[1] || 0;
-
-    const currentTotalMinutes = currentHours * 60 + currentMinutes;
-    const closeTotalMinutes = closeHours * 60 + closeMinutes;
-
-    return closeTotalMinutes - currentTotalMinutes;
-  });
-
-  /**
    * Clear error state
    */
   function clearError(): void {
@@ -375,19 +226,14 @@ export const useEventStore = defineStore('event', () => {
     // Getters
     eventId,
     eventName,
-    storeHours,
     maxOrdersPerAttendee,
-    isWithinOperatingHours,
     storeStatusMessage,
     canPlaceOrders,
-    timeUntilOpen,
-    timeUntilClose,
 
     // Actions
     loadEventConfig,
     toggleStoreStatus,
     updateEventConfig,
-    checkStoreHours,
     clearError,
     $reset
   };

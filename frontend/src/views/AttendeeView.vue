@@ -483,12 +483,20 @@ onMounted(async () => {
     
     console.log('[AttendeeView] Attendee ID:', attendeeId.value);
     
-    // Load order history from localStorage
-    loadOrderHistoryFromStorage();
-    
     // Load event configuration
     const eventId = import.meta.env.VITE_EVENT_ID || 'reinvent-2025';
     await eventStore.loadEventConfig(eventId);
+    
+    // Load order history from API (falls back to localStorage on error)
+    try {
+      await orderStore.loadRecentOrders(eventId, 30);
+    } catch (error) {
+      console.error('[AttendeeView] Failed to load orders from API, using localStorage');
+      loadOrderHistoryFromStorage();
+    }
+    
+    // Load order count from server
+    await orderStore.loadOrderCount(attendeeId.value, eventId);
     
     // Initialize AppSync Events connection
     await initializeAppSyncEvents();

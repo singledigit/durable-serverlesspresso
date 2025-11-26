@@ -188,6 +188,41 @@ class ApiService {
   }
 
   /**
+   * Get order count for attendee today
+   * GET /orders/count
+   * 
+   * @param attendeeId - The attendee ID
+   * @param eventId - The event ID
+   * @returns Promise with order count
+   */
+  async getOrderCount(attendeeId: string, eventId: string): Promise<{ count: number }> {
+    try {
+      const response = await this.client.get(`/orders/count?attendeeId=${attendeeId}&eventId=${eventId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to get order count:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get event configuration
+   * GET /config/{eventId}
+   * 
+   * @param eventId - The event ID
+   * @returns Promise with event configuration
+   */
+  async getEventConfig(eventId: string): Promise<any> {
+    try {
+      const response = await this.client.get(`/config/${eventId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to get event config:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Update store open/closed status
    * POST /store/status
    * 

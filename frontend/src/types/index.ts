@@ -54,8 +54,6 @@ export interface EventConfig {
   eventId: string;
   eventName: string;
   storeOpen: boolean;
-  openingTime: string;
-  closingTime: string;
   maxOrdersPerAttendee: number;
   createdAt: string;
   updatedAt: string;

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
+import { useEventStore } from './eventStore';
 import type {
   Order,
   OrderDetails,
@@ -92,21 +93,27 @@ export const useOrderStore = defineStore('order', () => {
 
   /**
    * Get orders for today (for daily limit checking)
-   * Only counts non-cancelled orders
+   * Only counts completed orders
    */
   const todaysOrders = computed(() => {
     const today = new Date().toISOString().split('T')[0];
     return orderHistory.value.filter(order => {
       const orderDate = new Date(order.timestamps.placed).toISOString().split('T')[0];
-      return orderDate === today && order.status !== 'CANCELLED';
+      return orderDate === today && order.status === 'COMPLETED';
     });
   });
 
   /**
-   * Count of orders placed today (excluding cancelled orders)
+   * Today's order count from server (source of truth)
+   */
+  const todaysOrderCountFromServer = ref<number>(0);
+
+  /**
+   * Count of completed orders placed today
+   * Calculated locally from orderHistory
    */
   const todaysOrderCount = computed(() => {
-    return todaysOrders.value.length + (currentOrder.value ? 1 : 0);
+    return todaysOrders.value.length;
   });
 
   /**
@@ -114,7 +121,8 @@ export const useOrderStore = defineStore('order', () => {
    * Allows up to 3 orders per day (cancelled orders don't count)
    */
   const hasReachedDailyLimit = computed(() => {
-    return todaysOrderCount.value >= 3; // Max 3 orders per day
+    const eventStore = useEventStore();
+    return todaysOrderCount.value >= eventStore.maxOrdersPerAttendee;
   });
 
   /**
@@ -219,6 +227,22 @@ export const useOrderStore = defineStore('order', () => {
   // ========== Actions ==========
 
   /**
+   * Load order count from server
+   */
+  async function loadOrderCount(attendeeId: string, eventId: string): Promise<void> {
+    try {
+      const { apiService } = await import('../services/api');
+      const result = await apiService.getOrderCount(attendeeId, eventId);
+      todaysOrderCountFromServer.value = result.count;
+      console.log(`Loaded order count from server: ${result.count}`);
+    } catch (error) {
+      console.error('Failed to load order count:', error);
+      // Fall back to local count
+      todaysOrderCountFromServer.value = todaysOrders.value.length;
+    }
+  }
+
+  /**
    * Load pending orders from API
    * Called from barista view on initialization
    */
@@ -278,10 +302,22 @@ export const useOrderStore = defineStore('order', () => {
       pendingOrders.value = pending;
       orderHistory.value = history;
 
+      // Set currentOrder to the first pending order (most recent)
+      if (pending.length > 0 && !currentOrder.value) {
+        currentOrder.value = pending[0];
+      }
+
+      // Cache in localStorage
+      saveOrderHistoryToStorage();
+
       console.log(`[OrderStore] Loaded ${response.orders.length} recent orders (${pending.length} pending, ${history.length} history)`);
     } catch (err: any) {
       error.value = err.message || 'Failed to load recent orders';
       console.error('Error loading recent orders:', err);
+      
+      // Fall back to localStorage on error
+      loadOrderHistoryFromStorage();
+      
       throw err;
     } finally {
       isLoading.value = false;
@@ -332,6 +368,7 @@ export const useOrderStore = defineStore('order', () => {
 
       // Set as current order for attendee
       currentOrder.value = newOrder;
+      saveOrderHistoryToStorage();
 
       return newOrder;
     } catch (err: any) {
@@ -433,6 +470,7 @@ export const useOrderStore = defineStore('order', () => {
           setTimeout(() => {
             if (currentOrder.value?.orderId === orderId) {
               currentOrder.value = null;
+              saveOrderHistoryToStorage();
             }
           }, 3000); // 3 second delay to show completion celebration
         }
@@ -459,6 +497,7 @@ export const useOrderStore = defineStore('order', () => {
         // Clear current order if it's the attendee's order
         if (currentOrder.value?.orderId === orderId) {
           currentOrder.value = null;
+          saveOrderHistoryToStorage();
         }
         break;
     }
@@ -580,6 +619,7 @@ export const useOrderStore = defineStore('order', () => {
    */
   function clearCurrentOrder(): void {
     currentOrder.value = null;
+    saveOrderHistoryToStorage();
   }
 
   /**
@@ -587,6 +627,37 @@ export const useOrderStore = defineStore('order', () => {
    */
   function clearError(): void {
     error.value = null;
+  }
+
+  /**
+   * Save order history to localStorage
+   */
+  function saveOrderHistoryToStorage(): void {
+    try {
+      localStorage.setItem('orderHistory', JSON.stringify(orderHistory.value));
+      localStorage.setItem('currentOrder', JSON.stringify(currentOrder.value));
+    } catch (err) {
+      console.error('Failed to save order history to localStorage:', err);
+    }
+  }
+
+  /**
+   * Load order history from localStorage
+   */
+  function loadOrderHistoryFromStorage(): void {
+    try {
+      const stored = localStorage.getItem('orderHistory');
+      if (stored) {
+        orderHistory.value = JSON.parse(stored);
+      }
+      
+      const storedCurrent = localStorage.getItem('currentOrder');
+      if (storedCurrent && storedCurrent !== 'null') {
+        currentOrder.value = JSON.parse(storedCurrent);
+      }
+    } catch (err) {
+      console.error('Failed to load order history from localStorage:', err);
+    }
   }
 
   /**
@@ -624,6 +695,7 @@ export const useOrderStore = defineStore('order', () => {
     getOrderById,
 
     // Actions
+    loadOrderCount,
     loadPendingOrders,
     loadRecentOrders,
     placeOrder,
