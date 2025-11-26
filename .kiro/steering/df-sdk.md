@@ -1,8 +1,3 @@
----
-inclusion: manual
----
-
-
 # AWS Durable Execution SDKs Reference
 
 ## Overview
@@ -31,41 +26,45 @@ The `DurableContext` is the main interface for building durable workflows. It pr
 ```typescript
 import { withDurableExecution, DurableContext } from 'aws-durable-execution-sdk-js';
 
-async function orderHandler(event: any, ctx: DurableContext) {
-  // Your durable workflow logic
-  const result = await ctx.step('process-order', async () => {
-    return await processOrder(event);
-  });
-  
-  return result;
-}
-
-export const handler = withDurableExecution(orderHandler);
+export const handler = withDurableExecution(
+  async (event: any, context: DurableContext) => {
+    const result = await context.step(async () => {
+      return "step completed";
+    });
+    return result;
+  }
+);
 ```
-
-**Important**: Avoid naming conflicts - don't name your inner function `handler` if you're exporting `handler`.
 
 ### Step Operations
 
 Execute atomic operations with automatic retry and state persistence:
 
 ```typescript
-// Named step with retry
-const result = await ctx.step(
-  'fetch-data',
-  async (stepCtx) => {
-    return await fetchFromAPI();
+// Anonymous step (most common)
+const result = await context.step(async () => {
+  return await fetchFromAPI();
+});
+
+// Named step for tracking
+const data = await context.step('fetch-data', async () => {
+  return await processData();
+});
+
+// Step with retry strategy
+const result = await context.step(
+  async () => {
+    if (Math.random() < 0.5) throw new Error("Random failure");
+    return "step succeeded";
   },
   {
-    retryStrategy: (error, attempt) => ({
-      shouldRetry: attempt < 3,
-      delaySeconds: Math.pow(2, attempt),
-    }),
+    retryStrategy: (error: Error, attemptCount: number) => {
+      if (attemptCount >= 3) return { shouldRetry: false };
+      return { shouldRetry: true, delay: { seconds: attemptCount } };
+    },
+    semantics: StepSemantics.AtMostOncePerRetry,
   }
 );
-
-// Anonymous step
-const data = await ctx.step(async () => processData());
 ```
 
 **Key Rule**: `step()` is for **single atomic operations only**. To group multiple durable operations, use `runInChildContext()`.
@@ -75,17 +74,17 @@ const data = await ctx.step(async () => processData());
 Group multiple durable operations with isolated state tracking:
 
 ```typescript
-const orderResult = await ctx.runInChildContext(
+const orderResult = await context.runInChildContext(
   'process-order',
-  async (childCtx) => {
+  async (childContext) => {
     // Child context has its own step counter and state
-    const validated = await childCtx.step('validate', async () => 
+    const validated = await childContext.step('validate', async () => 
       validateOrder(order)
     );
     
-    await childCtx.wait(1000);
+    await childContext.wait({ seconds: 1 });
     
-    const charged = await childCtx.step('charge', async () => 
+    const charged = await childContext.step('charge', async () => 
       chargePayment(validated)
     );
     
@@ -97,11 +96,11 @@ const orderResult = await ctx.runInChildContext(
 ### Wait Operations
 
 ```typescript
-// Wait for duration (milliseconds)
-await ctx.wait(30000); // 30 seconds
+// Wait for duration (seconds)
+await context.wait({ seconds: 30 });
 
 // Named wait for tracking
-await ctx.wait('rate-limit-delay', 5000);
+await context.wait('rate-limit-delay', { seconds: 5 });
 ```
 
 ### Conditional Waiting
@@ -109,7 +108,7 @@ await ctx.wait('rate-limit-delay', 5000);
 Wait until a condition is met by periodically checking state:
 
 ```typescript
-const finalState = await ctx.waitForCondition(
+const finalState = await context.waitForCondition(
   'wait-for-job',
   async (currentState, ctx) => {
     const status = await checkJobStatus(currentState.jobId);
@@ -123,7 +122,7 @@ const finalState = await ctx.waitForCondition(
       }
       return {
         shouldContinue: true,
-        delaySeconds: Math.min(attempt * 2, 60),
+        delay: { seconds: Math.min(attempt * 2, 60) },
       };
     },
   }
@@ -135,37 +134,38 @@ const finalState = await ctx.waitForCondition(
 Wait for external systems to complete operations:
 
 ```typescript
-// Method 1: Create callback and handle ID manually
-const [callbackPromise, callbackId] = await ctx.createCallback(
-  'external-approval',
-  { timeout: 3600 }
-);
-
-// Store callbackId in database or send to external system
-await saveCallbackId(orderId, callbackId);
-
-// Wait for external system to invoke callback
-const approvalResult = await callbackPromise;
-
-// Method 2: Use waitForCallback with submitter function
-const result = await ctx.waitForCallback(
+const result = await context.waitForCallback(
   'wait-for-webhook',
   async (callbackId, ctx) => {
     // This function receives the callbackId
     await submitToExternalAPI(callbackId);
   },
-  { timeout: 300 }
+  { timeout: { seconds: 300 } }
 );
 ```
 
 **Callback Pattern**: Store the `callbackId` in DynamoDB or send it to an external system. When the external event occurs, another Lambda function retrieves the `callbackId` and uses the client SDK to send the callback result.
+
+**Alternative: createCallback**
+
+For more control, use `createCallback` to get the callback ID without immediately waiting:
+
+```typescript
+const [callbackPromise, callbackId] = await context.createCallback<string>();
+
+// Send callbackId to external system
+await storeCallbackId(orderId, callbackId);
+
+// Wait for external system to respond
+const result = await callbackPromise;
+```
 
 ### Invoking Other Functions
 
 Call other durable functions:
 
 ```typescript
-const result = await ctx.invoke(
+const result = await context.invoke(
   'process-payment',
   'arn:aws:lambda:us-east-1:123456789012:function:payment-processor',
   { amount: 100, currency: 'USD' }
@@ -177,11 +177,11 @@ const result = await ctx.invoke(
 #### Map - Process arrays with concurrency control
 
 ```typescript
-const results = await ctx.map(
+const results = await context.map(
   'process-users',
   users,
-  async (ctx, user, index) => {
-    return await ctx.step(`process-${user.id}`, async () => 
+  async (context, user, index) => {
+    return await context.step(`process-${user.id}`, async () => 
       processUser(user)
     );
   },
@@ -199,22 +199,32 @@ const results = await ctx.map(
 console.log(`Succeeded: ${results.successCount}, Failed: ${results.failureCount}`);
 results.throwIfError(); // Throws if any failures
 ```
+```
 
 #### Parallel - Execute multiple functions concurrently
 
 ```typescript
-const results = await ctx.parallel(
+const results = await context.parallel(
   'parallel-tasks',
   [
-    { name: 'task1', func: async (ctx) => ctx.step(async () => fetchData1()) },
-    { name: 'task2', func: async (ctx) => ctx.step(async () => fetchData2()) },
-    async (ctx) => ctx.step(async () => fetchData3()),
+    async (childContext) => {
+      return await childContext.step(async () => fetchData1());
+    },
+    async (childContext) => {
+      return await childContext.step(async () => fetchData2());
+    },
+    async (childContext) => {
+      await childContext.wait({ seconds: 1 });
+      return fetchData3();
+    },
   ],
   {
     maxConcurrency: 2,
     completionConfig: { minSuccessful: 2 },
   }
 );
+
+return results.getResults();
 ```
 
 ### Promise Combinators
@@ -223,26 +233,26 @@ For fast, in-memory operations (NOT durable):
 
 ```typescript
 // Wait for all promises
-const [user, posts, comments] = await ctx.promise.all([
+const [user, posts, comments] = await context.promise.all([
   fetchUser(userId),
   fetchPosts(userId),
   fetchComments(userId),
 ]);
 
 // Race promises
-const fastest = await ctx.promise.race([
+const fastest = await context.promise.race([
   fetchFromPrimary(),
   fetchFromSecondary(),
 ]);
 
 // Wait for first success
-const result = await ctx.promise.any([
+const result = await context.promise.any([
   fetchFromSource1(),
   fetchFromSource2(),
 ]);
 
 // Wait for all to settle
-const results = await ctx.promise.allSettled([
+const results = await context.promise.allSettled([
   operation1(),
   operation2()
 ]);
@@ -256,12 +266,12 @@ const results = await ctx.promise.allSettled([
 import { retryPresets, createRetryStrategy } from 'aws-durable-execution-sdk-js';
 
 // Built-in preset
-await ctx.step('api-call', async () => callExternalAPI(), {
+await context.step('api-call', async () => callExternalAPI(), {
   retryStrategy: retryPresets.exponentialBackoff(),
 });
 
 // Custom retry strategy
-await ctx.step('custom-retry', async () => riskyOperation(), {
+await context.step('custom-retry', async () => riskyOperation(), {
   retryStrategy: (error, attempt) => ({
     shouldRetry: attempt < 5 && error.message.includes('timeout'),
     delaySeconds: attempt * 2,
@@ -297,6 +307,75 @@ const handler = async (event: any, ctx: DurableContext) => {
     throw error;
   }
 };
+```
+
+### Comprehensive Example
+
+Combining multiple operations in a real workflow:
+
+```typescript
+import { withDurableExecution, DurableContext } from 'aws-durable-execution-sdk-js';
+
+export const handler = withDurableExecution(
+  async (event: any, context: DurableContext) => {
+    context.logger.info('Starting workflow', { orderId: event.orderId });
+    
+    // Step 1: Validate order
+    const validated = await context.step('validate', async () => {
+      return validateOrder(event);
+    });
+    
+    // Step 2: Wait for rate limiting
+    await context.wait({ seconds: 1 });
+    
+    // Step 3: Process items in parallel with concurrency control
+    const items = [1, 2, 3, 4, 5];
+    const mapResults = await context.map(
+      'process-items',
+      items,
+      async (context, item, index) => {
+        return await context.step(`item-${index}`, async () => {
+          return item * 2;
+        });
+      },
+      { maxConcurrency: 2 }
+    );
+    
+    // Step 4: Run parallel operations
+    const parallelResults = await context.parallel(
+      'parallel-tasks',
+      [
+        async (childContext) => {
+          return await childContext.step('fetch-inventory', async () => 
+            fetchInventory()
+          );
+        },
+        async (childContext) => {
+          return await childContext.step('fetch-pricing', async () => 
+            fetchPricing()
+          );
+        },
+      ]
+    );
+    
+    // Step 5: Wait for external approval
+    const [approvalPromise, callbackId] = await context.createCallback<string>();
+    
+    await context.step('store-callback', async () => 
+      storeCallbackId(event.orderId, callbackId)
+    );
+    
+    const approval = await approvalPromise;
+    
+    // Step 6: Final processing
+    const result = await context.step('finalize', async () => {
+      return finalizeOrder(validated, mapResults, parallelResults, approval);
+    });
+    
+    context.logger.info('Workflow completed', { result });
+    return result;
+  }
+);
 ```
 
 ### Step Semantics

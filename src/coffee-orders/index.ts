@@ -250,73 +250,67 @@ export const handler = withDurableExecution(
     const attendeeIdForQuery = event.attendeeId;
     const eventIdForQuery = event.eventId;
 
-    const validationResults = await context.parallel<EventConfig | undefined | any[]>(
+    const validationResults = await context.parallel(
       "parallel-validation",
       [
-        {
-          name: "event-config",
-          func: async (ctx) =>
-            ctx.step(
-              "fetch-event-config",
-              async (stepCtx) => {
-                stepCtx.logger.info("Fetching event config", {
-                  eventId: eventIdForQuery,
-                  tableName: CONFIG_TABLE_NAME
-                });
-                
-                const result = await docClient.send(
-                  new GetCommand({
-                    TableName: CONFIG_TABLE_NAME,
-                    Key: { eventId: eventIdForQuery },
-                  })
-                );
-                
-                stepCtx.logger.info("Event config fetched", {
-                  found: !!result.Item,
-                  config: result.Item
-                });
-                
-                return result.Item as EventConfig | undefined;
-              },
-              { retryStrategy }
-            ),
-        },
-        {
-          name: "previous-orders",
-          func: async (ctx) =>
-            ctx.step(
-              "fetch-attendee-orders",
-              async (stepCtx) => {
-                stepCtx.logger.info("Querying attendee orders", {
-                  attendeeId: attendeeIdForQuery,
-                  eventId: eventIdForQuery,
-                  tableName: ORDERS_TABLE_NAME,
-                  indexName: "AttendeeEventIndex"
-                });
-                
-                const result = await docClient.send(
-                  new QueryCommand({
-                    TableName: ORDERS_TABLE_NAME,
-                    IndexName: "AttendeeEventIndex",
-                    KeyConditionExpression:
-                      "attendeeId = :attendeeId AND eventId = :eventId",
-                    ExpressionAttributeValues: {
-                      ":attendeeId": attendeeIdForQuery,
-                      ":eventId": eventIdForQuery,
-                    },
-                  })
-                );
-                
-                stepCtx.logger.info("Query completed", {
-                  itemCount: result.Items?.length || 0,
-                  items: result.Items
-                });
-                
-                return result.Items || [];
-              },
-              { retryStrategy }
-            ),
-        },
+        async (ctx) =>
+          ctx.step(
+            "fetch-event-config",
+            async (stepCtx) => {
+              stepCtx.logger.info("Fetching event config", {
+                eventId: eventIdForQuery,
+                tableName: CONFIG_TABLE_NAME
+              });
+              
+              const result = await docClient.send(
+                new GetCommand({
+                  TableName: CONFIG_TABLE_NAME,
+                  Key: { eventId: eventIdForQuery },
+                })
+              );
+              
+              stepCtx.logger.info("Event config fetched", {
+                found: !!result.Item,
+                config: result.Item
+              });
+              
+              return result.Item as EventConfig | undefined;
+            },
+            { retryStrategy }
+          ),
+        async (ctx) =>
+          ctx.step(
+            "fetch-attendee-orders",
+            async (stepCtx) => {
+              stepCtx.logger.info("Querying attendee orders", {
+                attendeeId: attendeeIdForQuery,
+                eventId: eventIdForQuery,
+                tableName: ORDERS_TABLE_NAME,
+                indexName: "AttendeeEventIndex"
+              });
+              
+              const result = await docClient.send(
+                new QueryCommand({
+                  TableName: ORDERS_TABLE_NAME,
+                  IndexName: "AttendeeEventIndex",
+                  KeyConditionExpression:
+                    "attendeeId = :attendeeId AND eventId = :eventId",
+                  ExpressionAttributeValues: {
+                    ":attendeeId": attendeeIdForQuery,
+                    ":eventId": eventIdForQuery,
+                  },
+                })
+              );
+              
+              stepCtx.logger.info("Query completed", {
+                itemCount: result.Items?.length || 0,
+                items: result.Items
+              });
+              
+              return result.Items || [];
+            },
+            { retryStrategy }
+          ),
       ],
       { maxConcurrency: 2 }
     );
