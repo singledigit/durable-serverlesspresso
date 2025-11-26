@@ -270,8 +270,8 @@ export const handler = withDurableExecution(
     const validationResults = await context.parallel(
       "parallel-validation",
       [
-        async (ctx) =>
-          ctx.step(
+        async (childCtx) =>
+          childCtx.step(
             "fetch-event-config",
             async (stepCtx) => {
               stepCtx.logger.info("Fetching event config", {
@@ -295,8 +295,8 @@ export const handler = withDurableExecution(
             },
             { retryStrategy }
           ),
-        async (ctx) =>
-          ctx.step(
+        async (childCtx) =>
+          childCtx.step(
             "fetch-attendee-orders",
             async (stepCtx) => {
               stepCtx.logger.info("Querying attendee orders", {
