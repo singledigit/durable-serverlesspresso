@@ -1,4 +1,4 @@
-import { DurableContext, withDurableExecution, createRetryStrategy } from "aws-durable-execution-sdk-js";
+import { DurableContext, withDurableExecution, createRetryStrategy } from "@aws/durable-execution-sdk-js";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand, UpdateCommand, GetCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
 import { randomUUID } from "crypto";

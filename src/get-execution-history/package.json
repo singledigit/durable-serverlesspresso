@@ -2,7 +2,9 @@
   "name": "get-execution-history",
   "version": "1.0.0",
   "type": "module",
-  "dependencies": {},
+  "dependencies": {
+    "@aws-sdk/client-lambda": "^3.705.0"
+  },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "typescript": "^5.9.2"

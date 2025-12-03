@@ -12,34 +12,6 @@ Globals:
     Tracing: Active
 
 Resources:
-  # ========== LAMBDA LAYERS ==========
-  
-  DurableSdkLayer:
-    Type: AWS::Serverless::LayerVersion
-    Properties:
-      LayerName: durable-sdk
-      Description: AWS Durable Execution SDK for orchestrator functions
-      ContentUri: src/durable-sdk/
-      CompatibleRuntimes:
-        - nodejs22.x
-        - nodejs20.x
-      RetentionPolicy: Delete
-    Metadata:
-      BuildMethod: makefile
-
-  DurableClientLayer:
-    Type: AWS::Serverless::LayerVersion
-    Properties:
-      LayerName: durable-client-sdk
-      Description: AWS SDK Lambda Client with Durable Execution commands
-      ContentUri: src/durable-client/
-      CompatibleRuntimes:
-        - nodejs22.x
-        - nodejs20.x
-      RetentionPolicy: Delete
-    Metadata:
-      BuildMethod: makefile
-
   # ========== DYNAMODB TABLES ==========
   
   ConfigTable:
@@ -701,9 +673,6 @@ Resources:
       Handler: index.handler
       Runtime: nodejs22.x
       Timeout: 60
-      Layers:
-        - !Ref DurableSdkLayer
-        - !Ref DurableClientLayer
       DurableConfig:
         ExecutionTimeout: 300
         RetentionPeriodInDays: 7
@@ -744,22 +713,14 @@ Resources:
         Minify: true
         Target: es2020
         Sourcemap: true
-        External:
-          - '@aws-sdk/*'
-          - 'aws-durable-execution-sdk-js'
         EntryPoints:
           - index.ts
-        External:
-          - '@aws-sdk/*'
-          - aws-durable-execution-sdk-js
 
   CallbackHandlerFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: src/callback-handler
       Handler: index.handler
-      Layers:
-        - !Ref DurableClientLayer
       Environment:
         Variables:
           ORDERS_TABLE_NAME: !Ref OrdersTable
@@ -849,8 +810,6 @@ Resources:
     Properties:
       CodeUri: src/get-execution-history
       Handler: index.handler
-      Layers:
-        - !Ref DurableClientLayer
       Environment:
         Variables:
           COFFEE_ORDERS_FUNCTION: !Ref CoffeeOrdersFunction

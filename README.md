@@ -5,7 +5,6 @@ Serverless coffee ordering system with AWS Lambda Durable Functions, EventBridge
 ## Architecture
 
 - **Durable Function**: Coffee order orchestration with barista callbacks
-- **Lambda Layers**: Durable SDK and Client SDK as reusable layers
 - **EventBridge**: Event-driven architecture for order lifecycle
 - **DynamoDB**: Config and orders storage with GSIs
 - **AppSync Events API**: Real-time WebSocket updates
@@ -14,41 +13,26 @@ Serverless coffee ordering system with AWS Lambda Durable Functions, EventBridge
 
 ```
 sev2/
-├── template.yaml                    # SAM template with layers
-├── sdk/                             # Durable execution SDK (self-contained)
-│   ├── packages/
-│   │   ├── aws-durable-execution-sdk-js/
-│   │   └── client-lambda/
-│   └── node_modules/
+├── template.yaml                    # SAM template
 └── src/
-    ├── durable-sdk/                 # Durable execution SDK layer
-    │   └── Makefile
-    ├── durable-client/              # Durable client SDK layer
-    │   └── Makefile
     ├── coffee-orders/               # Durable orchestrator function
     ├── callback-handler/            # Processes barista callbacks
     ├── event-publisher/             # Publishes to AppSync
     └── get-execution-history/       # API to get execution history
 ```
 
-## Lambda Layers
+## Dependencies
 
-### DurableSdkLayer
-Contains `aws-durable-execution-sdk-js` for durable functions:
-- `withDurableExecution`
-- `DurableContext`
-- `createRetryStrategy`
+**Orchestrator function** (`coffee-orders`):
+- `@aws/durable-execution-sdk-js` - Bundled with the function
 
-### DurableClientLayer
-Contains `@aws-sdk/client-lambda` with durable commands:
-- `SendDurableExecutionCallbackSuccessCommand`
-- `SendDurableExecutionCallbackFailureCommand`
-- `GetDurableExecutionHistoryCommand`
+**Client functions** (`callback-handler`, `get-execution-history`):
+- `@aws-sdk/client-lambda` - Marked as external, uses Lambda runtime's built-in AWS SDK
 
 ## Deployment
 
 ```bash
-# Build (includes layers)
+# Build
 sam build
 
 # Deploy
@@ -62,13 +46,13 @@ sam deploy --stack-name coffee-ordering --region us-east-1 --capabilities CAPABI
 
 ### coffee-orders (Durable)
 - **Type**: Durable orchestrator
-- **Layer**: DurableSdkLayer
+- **Dependencies**: `@aws/durable-execution-sdk-js`
 - **Timeout**: 60s (execution timeout: 300s)
 - **Workflow**: Order placement → Barista acceptance → Completion
 
 ### callback-handler
 - **Type**: Standard Lambda
-- **Layer**: DurableClientLayer
+- **Dependencies**: `@aws-sdk/client-lambda`
 - **Trigger**: EventBridge (BARISTA_* events)
 - **Purpose**: Sends callbacks to durable execution
 
@@ -79,7 +63,7 @@ sam deploy --stack-name coffee-ordering --region us-east-1 --capabilities CAPABI
 
 ### get-execution-history
 - **Type**: Standard Lambda
-- **Layer**: DurableClientLayer
+- **Dependencies**: `@aws-sdk/client-lambda`
 - **Trigger**: API Gateway
 - **Purpose**: Returns durable execution history
 
@@ -98,7 +82,7 @@ sam deploy --stack-name coffee-ordering --region us-east-1 --capabilities CAPABI
 
 ## Testing
 
-The durable function includes Jest tests using the `aws-durable-execution-sdk-js-testing` library for local testing.
+The durable function includes Jest tests using the `@aws/durable-execution-sdk-js-testing` library for local testing.
 
 ```bash
 cd src/coffee-orders
