@@ -754,8 +754,6 @@ Resources:
         Sourcemap: true
         EntryPoints:
           - index.ts
-        External:
-          - '@aws-sdk/*'
 
   EventPublisherFunction:
     Type: AWS::Serverless::Function
@@ -802,8 +800,6 @@ Resources:
         Sourcemap: true
         EntryPoints:
           - index.ts
-        External:
-          - '@aws-sdk/*'
 
   GetExecutionHistoryFunction:
     Type: AWS::Serverless::Function
@@ -828,8 +824,6 @@ Resources:
         Sourcemap: true
         EntryPoints:
           - index.ts
-        External:
-          - '@aws-sdk/*'
 
   GetExecutionHistoryFunctionPermission:
     Type: AWS::Lambda::Permission

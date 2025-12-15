@@ -1,10 +1,7 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, GetCommand } from "@aws-sdk/lib-dynamodb";
-import * as LambdaSDK from "@aws-sdk/client-lambda";
+import { LambdaClient, SendDurableExecutionCallbackSuccessCommand } from "@aws-sdk/client-lambda";
 import { EventBridgeEvent } from "aws-lambda";
-
-// Extract classes from the SDK (handles both ESM and CommonJS)
-const { LambdaClient, SendDurableExecutionCallbackSuccessCommand } = LambdaSDK;
 
 // Initialize AWS clients
 const dynamoClient = new DynamoDBClient({});
