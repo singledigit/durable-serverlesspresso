@@ -4,6 +4,8 @@ node_modules/
 package-lock.json
 *.log
 *.js
+!frontend/*.js
+!frontend/**/*.config.js
 *.d.ts
 dist/
 .DS_Store
