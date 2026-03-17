@@ -1,3 +1,4 @@
+.kiro/
 .aws-sam/
 samconfig.toml
 node_modules/
@@ -12,26 +13,7 @@ dist/
 .env
 env.json
 
-# Temporary SDK copies for layer builds (until SDK is publicly available)
-src/durable-client/client-lambda/
-src/durable-client/node_modules/
-src/durable-sdk/sdk-package/
-
-# SDK source code - only need Makefile for layer build
-src/durable-sdk/.github/
-src/durable-sdk/.husky/
-src/durable-sdk/.vscode/
-src/durable-sdk/docs/
-src/durable-sdk/packages/
-src/durable-sdk/CODE_OF_CONDUCT.md
-src/durable-sdk/CONTRIBUTING.md
-src/durable-sdk/eslint.config.js
-src/durable-sdk/package-lock.json
-src/durable-sdk/package.json
-src/durable-sdk/README.md
-src/durable-sdk/tsconfig.json
-src/durable-sdk/.prettierrc
-src/durable-sdk/NOTICE
-src/durable-sdk/LICENSE
-locals.json
+# Local durable execution state
 .durable-executions-local
+.durable-functions-local
+locals.json

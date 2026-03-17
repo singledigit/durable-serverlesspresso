@@ -380,7 +380,7 @@ async function handleSubmit(): Promise<void> {
 
   try {
     // Use attendee ID from props
-    const eventId = import.meta.env.VITE_EVENT_ID || 'reinvent-2025';
+    const eventId = import.meta.env.VITE_EVENT_ID || 'coffee-shop';
 
     // Place order
     const order = await orderStore.placeOrder(props.attendeeId, eventId, {

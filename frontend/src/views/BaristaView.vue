@@ -1103,7 +1103,7 @@ onMounted(async () => {
     console.log('[BaristaView] Barista ID:', baristaId.value);
     
     // Load event configuration
-    const eventId = import.meta.env.VITE_EVENT_ID || 'reinvent-2025';
+    const eventId = import.meta.env.VITE_EVENT_ID || 'coffee-shop';
     await eventStore.loadEventConfig(eventId);
     
     // Load recent orders (will split into pending and history)

@@ -5,7 +5,7 @@ import {
   ListDurableExecutionsByFunctionCommand 
 } from "@aws-sdk/client-lambda";
 
-const lambdaClient = new LambdaClient({ region: process.env.AWS_REGION || "eu-south-1" });
+const lambdaClient = new LambdaClient({});
 const COFFEE_ORDERS_FUNCTION = process.env.COFFEE_ORDERS_FUNCTION || "coffee-orders";
 
 /**

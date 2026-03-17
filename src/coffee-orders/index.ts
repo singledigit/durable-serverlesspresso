@@ -6,7 +6,7 @@ import { OrderRecord, EventConfig, CancelledBy } from "./types";
 import { parseCallbackResult, getTimestamp, publishToAppSync } from "./utils";
 
 // ========== AWS CLIENTS ==========
-const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION || "eu-south-1" });
+const dynamoClient = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
 
 // ========== ENVIRONMENT VARIABLES ==========
@@ -598,7 +598,7 @@ export const handler = withDurableExecution(
       baristaId: completionResult.baristaId,
       timestamps: {
         placed: orderData.timestamps.placed,
-        completed: getTimestamp(),
+        completed: workflowTimestamp,
       },
     };
   }

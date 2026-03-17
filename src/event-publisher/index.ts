@@ -323,7 +323,7 @@ async function publishToChannel(channel: string, eventData: any): Promise<void> 
 
   const signer = new SignatureV4({
     service: "appsync",
-    region: process.env.AWS_REGION || "us-east-1",
+    region: process.env.AWS_REGION!,
     credentials: defaultProvider(),
     sha256: Sha256,
   });

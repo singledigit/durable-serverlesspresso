@@ -1,4 +1,4 @@
-import { DurableContext } from "aws-durable-execution-sdk-js";
+import { DurableContext } from "@aws/durable-execution-sdk-js";
 import { PublishRequest } from "ob-appsync-events-request";
 
 /**

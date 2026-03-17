@@ -1,7 +1,7 @@
 {
   "orderId": "test-order-123",
   "attendeeId": "test-attendee-456",
-  "eventId": "reinvent-2025",
+  "eventId": "coffee-shop",
   "orderDetails": {
     "drinkType": "latte",
     "size": "medium",

@@ -484,7 +484,7 @@ onMounted(async () => {
     console.log('[AttendeeView] Attendee ID:', attendeeId.value);
     
     // Load event configuration
-    const eventId = import.meta.env.VITE_EVENT_ID || 'reinvent-2025';
+    const eventId = import.meta.env.VITE_EVENT_ID || 'coffee-shop';
     await eventStore.loadEventConfig(eventId);
     
     // Load order history from API (falls back to localStorage on error)

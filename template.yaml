@@ -17,7 +17,6 @@ Resources:
   ConfigTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: CoffeeOrderingConfig
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: eventId
@@ -31,7 +30,6 @@ Resources:
   OrdersTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: CoffeeOrders
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: orderId
@@ -80,7 +78,7 @@ Resources:
   EventBus:
     Type: AWS::Events::EventBus
     Properties:
-      Name: CoffeeOrderingEventBus
+      Name: !Sub '${AWS::StackName}-EventBus'
 
   # ========== APPSYNC EVENTS API ==========
   
@@ -683,6 +681,7 @@ Resources:
           EVENT_BUS_NAME: !Ref EventBus
           APPSYNC_HTTP_ENDPOINT: !GetAtt AppSyncEventsApi.Dns.Http
       Policies:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicDurableExecutionRolePolicy
         - DynamoDBReadPolicy:
             TableName: !Ref ConfigTable
         - DynamoDBReadPolicy:
@@ -690,14 +689,6 @@ Resources:
         - DynamoDBWritePolicy:
             TableName: !Ref OrdersTable
         - Statement:
-            - Effect: Allow
-              Action:
-                - lambda:CheckpointDurableExecution
-                - lambda:GetDurableExecutionState
-              Resource:
-                - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-CoffeeOrdersFunction-*'
-                - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-CoffeeOrdersFunction-*:*'
-                - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-CoffeeOrdersFunction-*/durable-execution/*'
             - Effect: Allow
               Action:
                 - events:PutEvents
@@ -715,6 +706,8 @@ Resources:
         Sourcemap: true
         EntryPoints:
           - index.ts
+        External:
+          - '@aws-sdk/*'
 
   CallbackHandlerFunction:
     Type: AWS::Serverless::Function
@@ -732,7 +725,7 @@ Resources:
               Action:
                 - lambda:SendDurableExecutionCallbackSuccess
                 - lambda:SendDurableExecutionCallbackFailure
-              Resource: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:sev2-CoffeeOrdersFunction-*'
+              Resource: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-CoffeeOrdersFunction-*'
       Events:
         BaristaAcceptOrder:
           Type: EventBridgeRule
@@ -754,6 +747,9 @@ Resources:
         Sourcemap: true
         EntryPoints:
           - index.ts
+        External:
+          - '@aws-sdk/client-dynamodb'
+          - '@aws-sdk/lib-dynamodb'
 
   EventPublisherFunction:
     Type: AWS::Serverless::Function
@@ -800,6 +796,8 @@ Resources:
         Sourcemap: true
         EntryPoints:
           - index.ts
+        External:
+          - '@aws-sdk/*'
 
   GetExecutionHistoryFunction:
     Type: AWS::Serverless::Function
@@ -838,6 +836,14 @@ Outputs:
     Description: API Gateway URL
     Value: !Sub 'https://${CoffeeOrderingApi}.execute-api.${AWS::Region}.amazonaws.com/prod'
   
+  OrdersTableName:
+    Description: DynamoDB Orders Table Name
+    Value: !Ref OrdersTable
+
+  ConfigTableName:
+    Description: DynamoDB Config Table Name
+    Value: !Ref ConfigTable
+
   EventBusName:
     Description: EventBridge Event Bus Name
     Value: !Ref EventBus
