@@ -4,11 +4,41 @@ Serverless coffee ordering system using AWS Lambda Durable Functions, EventBridg
 
 ## Architecture
 
-- **Durable Function** — Coffee order orchestration with `waitForCallback()` for barista accept/complete
-- **EventBridge** — Decoupled event-driven communication between services
-- **DynamoDB** — Orders and config storage with GSIs
-- **AppSync Events API** — Real-time WebSocket updates to the frontend
-- **Vue.js Frontend** — Attendee ordering and barista queue interfaces
+```
+                          ┌─────────────────────────────────────────────────────────┐
+                          │                    Vue.js Frontend                      │
+                          │              (Attendee + Barista views)                 │
+                          └──────┬──────────────────────────────────┬───────────────┘
+                                 │ REST                             ▲ WebSocket
+                                 ▼                                  │
+                          ┌─────────────┐                   ┌──────┴──────┐
+                          │ API Gateway │                   │  AppSync    │
+                          │             │                   │  Events API │
+                          └──┬──┬───┬───┘                   └─────────────┘
+                             │  │   │                               ▲
+              ┌──────────────┘  │   └──────────────┐               │
+              ▼                 ▼                   ▼               │
+     ┌────────────────┐  ┌───────────┐  ┌──────────────────┐       │
+     │ DynamoDB       │  │ Durable   │  │ EventBridge      │       │
+     │ (direct query) │  │ Function  │  │ (barista actions) │       │
+     └────────────────┘  │ coffee-   │  └────────┬─────────┘       │
+                         │ orders    │           │                  │
+                         └─────┬─────┘     ┌─────┴──────────┐      │
+                               │           │                │      │
+                               │           ▼                ▼      │
+                               │  ┌──────────────┐ ┌───────┴──────┐
+                               │  │  callback-   │ │ event-       │
+                               │  │  handler     │ │ publisher    │
+                               │  └──────┬───────┘ └──────┬───────┘
+                               │         │                │
+                               ▼         ▼                ▼
+                          ┌──────────────────────────────────────┐
+                          │            DynamoDB                  │
+                          │     (Orders + Config tables)         │
+                          └──────────────────────────────────────┘
+```
+
+The durable function pauses with `waitForCallback()` while waiting for barista actions. When a barista accepts or completes an order, the callback flows through EventBridge → callback-handler → resumes the durable execution. The event-publisher handles all real-time updates to the frontend via AppSync Events.
 
 ## Project Structure
 

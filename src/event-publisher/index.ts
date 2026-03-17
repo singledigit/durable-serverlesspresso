@@ -1,10 +1,7 @@
 import { EventBridgeEvent } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, UpdateCommand } from "@aws-sdk/lib-dynamodb";
-import { SignatureV4 } from "@smithy/signature-v4";
-import { Sha256 } from "@aws-crypto/sha256-js";
-import { HttpRequest } from "@smithy/protocol-http";
-import { defaultProvider } from "@aws-sdk/credential-provider-node";
+import { PublishRequest } from "ob-appsync-events-request";
 
 const dynamoClient = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
@@ -303,38 +300,13 @@ async function publishToAppSyncEvents(
  * Publish a single event to an AppSync Events channel using IAM authentication
  */
 async function publishToChannel(channel: string, eventData: any): Promise<void> {
-  const url = new URL(APPSYNC_EVENTS_API_URL);
-  const body = JSON.stringify({
+  const request = await PublishRequest.signed(
+    APPSYNC_EVENTS_API_URL,
     channel,
-    events: [JSON.stringify(eventData)],
-  });
+    eventData
+  );
 
-  const request = new HttpRequest({
-    method: "POST",
-    protocol: url.protocol.slice(0, -1),
-    hostname: url.hostname,
-    path: url.pathname,
-    headers: {
-      "Content-Type": "application/json",
-      host: url.hostname,
-    },
-    body,
-  });
-
-  const signer = new SignatureV4({
-    service: "appsync",
-    region: process.env.AWS_REGION!,
-    credentials: defaultProvider(),
-    sha256: Sha256,
-  });
-
-  const signedRequest = await signer.sign(request);
-
-  const response = await fetch(url.toString(), {
-    method: signedRequest.method,
-    headers: signedRequest.headers as Record<string, string>,
-    body: signedRequest.body,
-  });
+  const response = await fetch(request);
 
   if (!response.ok) {
     const errorText = await response.text();

@@ -14,10 +14,6 @@ jest.mock("@aws-sdk/lib-dynamodb", () => ({
   GetCommand: jest.fn((params) => params),
   QueryCommand: jest.fn((params) => params),
 }));
-jest.mock("@aws-sdk/client-eventbridge", () => ({
-  EventBridgeClient: jest.fn(() => ({ send: jest.fn() })),
-  PutEventsCommand: jest.fn(),
-}));
 jest.mock("./utils", () => ({
   parseCallbackResult: jest.fn((result) => result),
   getTimestamp: jest.fn(() => "2025-01-01T00:00:00.000Z"),

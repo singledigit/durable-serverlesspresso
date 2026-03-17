@@ -4,7 +4,8 @@
   "type": "module",
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.705.0",
-    "@aws-sdk/lib-dynamodb": "^3.705.0"
+    "@aws-sdk/lib-dynamodb": "^3.705.0",
+    "ob-appsync-events-request": "^0.0.7"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
