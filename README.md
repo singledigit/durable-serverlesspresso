@@ -4,29 +4,27 @@ Serverless coffee ordering system using AWS Lambda Durable Functions, EventBridg
 
 ## Architecture
 
+1. Attendee places order → API Gateway → `coffee-orders` durable function starts
+2. Function validates order (store open, daily limit) via DynamoDB queries
+3. Function publishes `ORDER_PLACED` → EventBridge → `event-publisher` → AppSync → frontend updates
+4. Function calls `waitForCallback()` — execution pauses, callback ID stored in DynamoDB
+5. Barista clicks Accept → API Gateway → EventBridge → `callback-handler` sends callback success
+6. Function resumes, publishes `ORDER_ACCEPTED`, calls `waitForCallback()` again for completion
+7. Barista clicks Complete → same callback flow → function finishes with `ORDER_COMPLETED`
+
 ```mermaid
 graph TD
-    Frontend["Vue.js Frontend<br/>(Attendee + Barista views)"]
-
-    Frontend -- "REST" --> APIGW["API Gateway"]
-    AppSync["AppSync Events API"] -- "WebSocket" --> Frontend
-
-    APIGW -- "direct query" --> DDB
-    APIGW -- "async invoke" --> Durable["☕ coffee-orders<br/>(Durable Function)"]
-    APIGW -- "barista actions" --> Callback["callback-handler"]
-
-    Durable -- "waitForCallback()" --> DDB
-    Durable -- "events" --> Publisher["event-publisher"]
-
-    Callback -- "resume execution" --> Durable
-    Callback --> DDB
-    Publisher --> DDB
-    Publisher -- "publish" --> AppSync
-
-    DDB[("DynamoDB<br/>Orders + Config")]
+    Frontend --> API_Gateway
+    API_Gateway --> DynamoDB
+    API_Gateway --> coffee-orders["coffee-orders (Durable Function)"]
+    API_Gateway --> callback-handler["callback-handler (Function)"]
+    coffee-orders --> DynamoDB
+    callback-handler --> coffee-orders
+    coffee-orders --> event-publisher["event-publisher (Function)"]
+    event-publisher --> DynamoDB
+    event-publisher --> AppSync
+    AppSync --> Frontend
 ```
-
-The durable function pauses with `waitForCallback()` while waiting for barista actions. When a barista accepts or completes an order, the callback flows through EventBridge → callback-handler → resumes the durable execution. The event-publisher handles all real-time updates to the frontend via AppSync Events.
 
 ## Project Structure
 
@@ -54,7 +52,7 @@ The durable execution SDK (`@aws/durable-execution-sdk-js`) is installed from np
 
 ```bash
 sam build
-sam deploy
+sam deploy --guided
 ```
 
 ### 2. Grab stack outputs
@@ -126,16 +124,6 @@ Start the dev server:
 ```bash
 npm run dev
 ```
-
-## Event Flow
-
-1. Attendee submits order → API Gateway → `coffee-orders` durable function starts
-2. Function validates order (store open, daily limit) via parallel DynamoDB queries
-3. Function publishes `ORDER_PLACED` → EventBridge → `event-publisher` → AppSync (frontend updates)
-4. Function calls `waitForCallback()` — execution pauses, callback ID stored in DynamoDB
-5. Barista clicks Accept → API Gateway → EventBridge → `callback-handler` sends callback success
-6. Function resumes, publishes `ORDER_ACCEPTED`, calls `waitForCallback()` again for completion
-7. Barista clicks Complete → same callback flow → function finishes with `ORDER_COMPLETED`
 
 ## Local Testing
 
