@@ -4,38 +4,26 @@ Serverless coffee ordering system using AWS Lambda Durable Functions, EventBridg
 
 ## Architecture
 
-```
-                          ┌─────────────────────────────────────────────────────────┐
-                          │                    Vue.js Frontend                      │
-                          │              (Attendee + Barista views)                 │
-                          └──────┬──────────────────────────────────┬───────────────┘
-                                 │ REST                             ▲ WebSocket
-                                 ▼                                  │
-                          ┌─────────────┐                   ┌──────┴──────┐
-                          │ API Gateway │                   │  AppSync    │
-                          │             │                   │  Events API │
-                          └──┬──┬───┬───┘                   └─────────────┘
-                             │  │   │                               ▲
-              ┌──────────────┘  │   └──────────────┐               │
-              ▼                 ▼                   ▼               │
-     ┌────────────────┐  ┌───────────┐  ┌──────────────────┐       │
-     │ DynamoDB       │  │ Durable   │  │ EventBridge      │       │
-     │ (direct query) │  │ Function  │  │ (barista actions) │       │
-     └────────────────┘  │ coffee-   │  └────────┬─────────┘       │
-                         │ orders    │           │                  │
-                         └─────┬─────┘     ┌─────┴──────────┐      │
-                               │           │                │      │
-                               │           ▼                ▼      │
-                               │  ┌──────────────┐ ┌───────┴──────┐
-                               │  │  callback-   │ │ event-       │
-                               │  │  handler     │ │ publisher    │
-                               │  └──────┬───────┘ └──────┬───────┘
-                               │         │                │
-                               ▼         ▼                ▼
-                          ┌──────────────────────────────────────┐
-                          │            DynamoDB                  │
-                          │     (Orders + Config tables)         │
-                          └──────────────────────────────────────┘
+```mermaid
+graph TD
+    Frontend["Vue.js Frontend<br/>(Attendee + Barista views)"]
+
+    Frontend -- "REST" --> APIGW["API Gateway"]
+    AppSync["AppSync Events API"] -- "WebSocket" --> Frontend
+
+    APIGW -- "direct query" --> DDB
+    APIGW -- "async invoke" --> Durable["☕ coffee-orders<br/>(Durable Function)"]
+    APIGW -- "barista actions" --> Callback["callback-handler"]
+
+    Durable -- "waitForCallback()" --> DDB
+    Durable -- "events" --> Publisher["event-publisher"]
+
+    Callback -- "resume execution" --> Durable
+    Callback --> DDB
+    Publisher --> DDB
+    Publisher -- "publish" --> AppSync
+
+    DDB[("DynamoDB<br/>Orders + Config")]
 ```
 
 The durable function pauses with `waitForCallback()` while waiting for barista actions. When a barista accepts or completes an order, the callback flows through EventBridge → callback-handler → resumes the durable execution. The event-publisher handles all real-time updates to the frontend via AppSync Events.
