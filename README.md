@@ -1,6 +1,8 @@
-# Coffee Ordering — Durable Functions Demo
+# Durable Serverlesspresso
 
-Serverless coffee ordering system using AWS Lambda Durable Functions, EventBridge, and AppSync Events API. Demonstrates human-in-the-loop workflows where a durable execution pauses and waits for barista actions via external callbacks.
+A rebuild of [Serverlesspresso](https://github.com/aws-samples/serverless-coffee) using [AWS Lambda Durable Functions](https://docs.aws.amazon.com/lambda/latest/dg/durable-functions.html). Built as the demo for the launch of durable functions — a coffee ordering system where the execution pauses while waiting for barista actions and replays from where it left off when they respond.
+
+📺 [Watch the walkthrough](https://youtu.be/XJ80NBOwsow?si=dEbl7sKXm-tuOGPp)
 
 ## Architecture
 
